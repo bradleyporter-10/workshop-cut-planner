@@ -74,12 +74,12 @@ For GitHub Pages, commit/push the generated `docs/` files, then select **Setting
 ### Install and use offline
 
 1. Visit the hosted site online and wait for **Ready for offline use** at the bottom.
-2. Click **Install app** if offered, or use the browser's install option. On iPhone/iPad, use Safari's **Share → Add to Home Screen**.
+2. Click **Install app** if offered, or use the browser's install option. On iPhone/iPad, the button shows manual **Share → Add to Home Screen** instructions (use Safari if your browser lacks that option). The install button is hidden in standalone/installed app mode and after an installation event. A regular browser tab cannot reliably determine whether the app is installed elsewhere on every platform.
 3. Launch from the installed app icon. The planner and SketchUp import work offline after the initial files are cached.
 
 Installation and service-worker caching require **HTTPS**, or localhost for development; they are not available from `file://`. Browser install UI varies. See [MDN's PWA installability requirements](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable).
 
-The service worker caches only the packaged app files. Models and projects remain local and are not uploaded or stored in this cache. **Save project** downloads JSON; projects are not automatically saved across closing the app. When an update is ready, save your project and close all app windows/tabs before reopening. Updates never force-reload an open plan. Browser cache eviction/clearing can require another online visit.
+The service worker caches only the packaged app files. Models and projects remain local and are not uploaded or stored in this cache. **Save project** downloads JSON; projects are not automatically saved across closing the app. The app checks for updates on launch, when brought back into view (at most once per minute), when reconnecting, and every five minutes while visible and online. When an update is ready, save your project and select **Refresh app** at the bottom. This checks immediately, activates the downloaded update, and reloads only after confirmation. You can also close all app windows/tabs and reopen. Other open windows are not forcibly reloaded. Browser cache eviction/clearing can require another online visit.
 
 You can still send **just `docs/index.html`** for direct offline use: recipients save it locally and double-click it in Chrome. The parser is embedded, and no server, PWA installation, vendor folder, Python, or Node/npm is needed for that mode.
 

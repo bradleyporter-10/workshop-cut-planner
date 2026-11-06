@@ -1,4 +1,4 @@
-WORKSHOP CUT PLANNER v0.1.24 — INSTALLABLE / OFFLINE EDITION
+WORKSHOP CUT PLANNER v0.1.26 — INSTALLABLE / OFFLINE EDITION
 
 INSTALL AS AN APP
 1. Open the published HTTPS site in your browser while online.
@@ -20,7 +20,9 @@ PROJECTS AND UPDATES
 Your models and projects stay in your browser and are not uploaded.
 Use Save project to download JSON before closing or installing an update.
 Use Open project to restore a saved project; projects are not auto-saved.
-Updates wait until all app windows/tabs are closed; no automatic reload.
+Use Refresh app at the bottom to check/apply updates after saving your JSON.
+Updates are also checked on launch, return to the app, and periodically online.
+Reloads require confirmation; alternatively close all app windows and reopen.
 Browser cache clearing or eviction may require an online visit again.
 
 SketchUp import is beta. Review dimensions, quantities, kerf and cut sequence

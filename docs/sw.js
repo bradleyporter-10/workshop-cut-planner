@@ -1,6 +1,6 @@
 'use strict';
 const CACHE_PREFIX = 'workshop-cut-planner:' + self.registration.scope + ':';
-const CACHE_NAME = CACHE_PREFIX + 'e0e4d6622d326aaf';
+const CACHE_NAME = CACHE_PREFIX + 'e73e3cc0306c7e19';
 const ASSETS = ["index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png"].map(asset => new URL(asset, self.registration.scope).href);
 const INDEX = new URL('index.html', self.registration.scope).href;
 const ROOT = new URL('./', self.registration.scope).href;
@@ -15,6 +15,10 @@ self.addEventListener('install', event => {
             throw error;
         }
     })());
+});
+// Only activate immediately after a user's explicit Refresh app confirmation.
+self.addEventListener('message', event => {
+    if (event.data?.type === 'SKIP_WAITING') event.waitUntil(self.skipWaiting());
 });
 self.addEventListener('activate', event => {
     event.waitUntil((async () => {

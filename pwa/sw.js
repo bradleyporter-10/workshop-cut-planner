@@ -16,6 +16,10 @@ self.addEventListener('install', event => {
         }
     })());
 });
+// Only activate immediately after a user's explicit Refresh app confirmation.
+self.addEventListener('message', event => {
+    if (event.data?.type === 'SKIP_WAITING') event.waitUntil(self.skipWaiting());
+});
 self.addEventListener('activate', event => {
     event.waitUntil((async () => {
         const keys = await caches.keys();

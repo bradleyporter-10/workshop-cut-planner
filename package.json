@@ -1,11 +1,11 @@
 {
     "name": "workshop-cut-planner",
-    "version": "0.1.24",
+    "version": "0.1.26",
     "private": true,
     "description": "Offline browser cut planner; npm is only used to rebuild the vendored SketchUp bundle",
     "scripts": {
         "build:skp": "node scripts/build-skp.cjs",
-        "test": "node tests/test_skp_bundle.cjs && node tests/test_cut_bubbles.cjs && node tests/test_cut_positions.cjs && node tests/test_layout_fractions.cjs && node tests/test_pwa.cjs && node tests/test_layout_grouping.cjs",
+        "test": "node tests/test_skp_bundle.cjs && node tests/test_cut_bubbles.cjs && node tests/test_cut_positions.cjs && node tests/test_layout_fractions.cjs && node tests/test_pwa.cjs && node tests/test_layout_grouping.cjs && node tests/test_pwa_client.cjs",
         "build:distrib": "npm run build:skp && python3 scripts/package-distrib.py",
         "preview:pwa": "python3 -m http.server 8000 --bind 127.0.0.1 --directory docs",
         "test:pwa:browser": "node tests/browser_pwa_smoke.cjs"

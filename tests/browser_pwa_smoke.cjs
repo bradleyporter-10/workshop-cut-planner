@@ -9,13 +9,18 @@ const root = path.resolve(__dirname,'..');
 const chromePath = process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const prefix = '/workshop-cut-planner/';
 const mime = {'.html':'text/html','.js':'text/javascript','.webmanifest':'application/manifest+json','.png':'image/png'};
+let deploymentRevision = 0;
 const server = http.createServer((req,res)=>{
     const pathname = new URL(req.url,'http://localhost').pathname;
     if (!pathname.startsWith(prefix)) {res.writeHead(404).end();return;}
     const file = path.resolve(root,'docs',pathname.slice(prefix.length)||'index.html');
     if (!file.startsWith(path.join(root,'docs')+path.sep) || !fs.existsSync(file)) {res.writeHead(404).end();return;}
     res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'text/plain','Cache-Control':'no-store'});
-    res.end(fs.readFileSync(file));
+    let data=fs.readFileSync(file);
+    if(path.basename(file)==='sw.js'&&deploymentRevision){
+        data=Buffer.from(data.toString().replace(/const CACHE_NAME = CACHE_PREFIX \+ '[^']+';/, `const CACHE_NAME = CACHE_PREFIX + 'smoke-revision-${deploymentRevision}';`));
+    }
+    res.end(data);
 });
 let chrome, socket, profile, deadline;
 const pending = new Map();
@@ -70,6 +75,9 @@ function command(method, params={}, sessionId) {
     await waitFor('document.readyState === "complete" && typeof loadSkpIntoParts === "function"');
     await evaluate('navigator.serviceWorker.ready.then(()=>true)');
     await waitFor('!!navigator.serviceWorker.controller');
+    await evaluate(`(()=>{const event=new Event('beforeinstallprompt');event.prompt=()=>Promise.resolve();event.userChoice=Promise.resolve({outcome:'accepted'});window.dispatchEvent(event);document.getElementById('pwa-install').click();return true;})()`);
+    await waitFor("document.getElementById('pwa-install').hidden");
+    assert.equal(await evaluate("getComputedStyle(document.getElementById('pwa-install')).display"),'none','hidden install is not overridden by toolbar CSS');
     const registration=await evaluate('navigator.serviceWorker.ready.then(r=>r.scope)');
     assert.equal(registration,url);
     const manifest=await command('Page.getAppManifest',{},sessionId);
@@ -163,6 +171,13 @@ function command(method, params={}, sessionId) {
     assert.equal(await evaluate("getComputedStyle(document.querySelector('.cut-sequence-table tbody tr')).display"),'table-row','printed cut list remains a table');
     assert.ok(await evaluate("Array.from(document.querySelectorAll('.mobile-section-content')).every(el=>getComputedStyle(el).display!=='none')"),'collapsed mobile sections stay visible in print');
     await command('Emulation.setEmulatedMedia',{media:''},sessionId);
+    deploymentRevision=1;
+    await command('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1},sessionId);
+    await evaluate('navigator.serviceWorker.getRegistration().then(r=>r.update()).then(()=>true)');
+    await waitFor('navigator.serviceWorker.getRegistration().then(r=>!!r.waiting)');
+    await evaluate("window.__beforePwaRefresh=true;window.confirm=()=>true;document.getElementById('pwa-refresh').click();true");
+    await waitFor("document.readyState==='complete' && typeof window.__beforePwaRefresh==='undefined' && !!document.getElementById('pwa-refresh') && caches.keys().then(keys=>keys.some(key=>key.endsWith('smoke-revision-1')))");
+    console.log('PASS: Install control hides correctly; a simulated deployment is detected and activated through Refresh app.');
     console.log('PASS: Mobile page widths 320–768px fit the viewport; phone tables use labeled cards; desktop tables remain intact.');
     console.log(`PASS: Chrome validated the manifest, controlled the repository subpath, reloaded offline, and imported ${count} grouped SKP parts.`);
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(async()=>{

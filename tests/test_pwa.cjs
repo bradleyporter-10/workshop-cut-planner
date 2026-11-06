@@ -22,10 +22,10 @@ const scope = 'https://example.test/workshop-cut-planner/';
 const prefix = 'workshop-cut-planner:' + scope + ':';
 stores.set(prefix + 'old', new Map());
 stores.set('another-app-cache', new Map());
-let networkCalls = 0;
+let networkCalls = 0, activations = 0;
 const context = {
     URL, Request,
-    self: {registration:{scope}, location:{origin:'https://example.test'}, clients:{claim:async()=>{}},
+    self: {skipWaiting:async()=>{activations++;},registration:{scope}, location:{origin:'https://example.test'}, clients:{claim:async()=>{}},
         addEventListener:(type, fn)=>handlers[type]=fn},
     caches: {
         keys:async()=>[...stores.keys()],
@@ -47,6 +47,11 @@ async function request(url, mode='navigate', method='GET') {
 }
 (async()=>{
     await lifecycle('install');
+    assert.equal(activations,0,'updates never skip waiting without approval');
+    let activation;
+    handlers.message({data:{type:'SKIP_WAITING'},waitUntil:task=>activation=task});
+    await activation;
+    assert.equal(activations,1,'approved refresh activates waiting worker');
     await lifecycle('activate');
     assert.ok(stores.has('another-app-cache'), 'unrelated caches retained');
     assert.ok(!stores.has(prefix+'old'), 'obsolete app cache removed');
