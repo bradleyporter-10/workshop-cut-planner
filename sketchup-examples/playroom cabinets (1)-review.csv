@@ -1,0 +1,34 @@
+﻿name,width,length,thickness,quantity,material,status,note
+Base Toe Kick (large),3.50000,80.00000,0.75000,4,,OK,
+Base Toe Kick (small),3.50000,70.50000,0.75000,2,,OK,
+Base Toekick Stringer (large),3.50000,19.50000,0.75000,12,,OK,
+Cab Stringer (small),3.50000,22.00000,0.75000,5,,OK,
+Cabinet Back Stringer (large),4.00000,38.00000,0.75000,8,,OK,
+Cabinet Back Stringer (small),4.00000,33.75000,0.75000,6,,OK,
+Cabinet Base (small),23.50000,33.75000,0.75000,2,,OK,
+Cabinet Base Rail (short),3.50000,70.50000,0.75000,2,,OK,
+Cabinet Bottom (large),21.00000,38.00000,0.75000,4,,OK,
+Cabinet Shelf,23.50000,33.75000,0.73173,2,,OK,
+Cabinet Side (large),21.00000,24.50000,0.75000,8,,OK,
+Cabinet Side (small),23.50000,24.50000,0.75000,4,,OK,
+Cabinet Stringer (large),3.50000,38.00000,0.75000,8,,OK,
+Cabinet Stringer (small),3.50000,33.75000,0.75000,4,,OK,
+Counter Face (long),1.50000,80.00000,0.50000,2,,OK,
+Counter Face (middle),1.50000,71.50000,0.50000,1,,OK,
+Counter Face (small),1.50000,3.00000,0.50000,2,,OK,
+Counter Rail (long),3.50000,80.00000,0.75000,4,,OK,
+Counter Stile (long),3.48403,16.50000,0.75000,3,,OK,
+Counter Stile (small),3.48403,14.00000,0.75000,6,,OK,
+Countertop (long),21.00000,80.00000,0.75000,2,,OK,
+Countertop (short),23.50000,70.50000,0.75000,1,,OK,
+Door Face,14.56250,19.25000,0.25000,8,,OK,
+Door Rail,2.50000,14.56250,0.50000,16,,OK,
+Door Stile,2.50000,24.00000,0.50000,16,,OK,
+Drawer Face,8.50000,30.00000,0.25000,2,,OK,
+Drawer Rail,2.50000,30.00000,0.50000,4,,OK,
+Drawer Stile,2.50000,13.50000,0.50000,4,,OK,
+,,,,,,REVIEW: assembly-geometry-skipped,"count=4; ref=68054; path=Model/Cabinet Box (large); note=Assembly node has child instances and own geometry (L=38.00000, W=21.00000, T=0.75000); own geometry not exported as part"
+,,,,,,REVIEW: hidden-skipped,count=8; ref=80028; path=Model/Cabinet Box (large)/Group#13; note=Hidden instance skipped
+,,,,,,REVIEW: hidden-skipped,count=2; ref=80036; path=Model/Cabinet Box (small)/Group#15; note=Hidden instance skipped
+,,,,,,REVIEW: hidden-skipped,count=2; ref=54585; path=Model/Group#6; note=Hidden instance skipped
+,,,,,,REVIEW: hidden-skipped,count=1; ref=68936; path=Model/Room; note=Hidden instance skipped

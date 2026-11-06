@@ -1,0 +1,18 @@
+WORKSHOP CUT PLANNER — OFFLINE EDITION
+
+1. Extract this ZIP into a folder on your computer.
+2. Open Workshop-Cut-Planner.html in a current desktop browser (Chrome tested).
+   If needed, right-click the HTML file and choose Open With > Google Chrome.
+3. Import a SketchUp (SKP) file, import a CSV, or enter your parts manually.
+4. Click Optimize cut plan, then Print / Save PDF for a shop copy.
+
+No installation, account, internet connection, or server is required.
+Everything needed to run the planner is embedded in the HTML file.
+You can also share just Workshop-Cut-Planner.html; this text file is optional.
+
+Your models and projects are processed in your browser and are not uploaded.
+Use Save project to download your project JSON before closing the browser.
+Use Open project to restore a saved JSON project later.
+
+SketchUp import is beta. Review imported dimensions and quantities.
+Always verify stock sizes, kerf, dimensions, and cut sequence before cutting.
