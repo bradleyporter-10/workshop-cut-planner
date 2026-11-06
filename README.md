@@ -65,23 +65,46 @@ python3 tests/browser_skp_smoke.py
 
 It uses installed macOS Chrome by default; set `CHROME_BIN` to another Chrome/Chromium executable if needed. `npm test` also parses the real model in a browser-like JavaScript context with network APIs disabled and runs the layout regression tests.
 
-## Share the offline planner
+## Publish or share the PWA
 
-The `docs/` directory contains a ready-to-send **Workshop-Cut-Planner.zip**. Recipients extract it and double-click **Workshop-Cut-Planner.html**. The parser is embedded, so the HTML file can also be sent on its own; `START-HERE.txt` is optional instructions. No vendor folder, Python, Node/npm, installation, account, server, or internet access is needed to run it.
+The generated `docs/` folder is an installable, offline-capable Progressive Web App. Publish **the whole folder** to static HTTPS hosting. It contains `index.html` (with the parser embedded), `manifest.webmanifest`, `sw.js`, install icons, and `START-HERE.txt`. No account service, backend, CDN, or runtime third-party dependency is required.
 
-Rebuild the distribution after changing the planner or parser:
+For GitHub Pages, commit/push the generated `docs/` files, then select **Settings → Pages → Deploy from a branch → main → /docs** in your repository. Open the resulting HTTPS URL. All paths are relative, so a repository URL such as `/workshop-cut-planner/` is supported. The build does not publish or change GitHub settings for you.
+
+### Install and use offline
+
+1. Visit the hosted site online and wait for **Ready for offline use** at the bottom.
+2. Click **Install app** if offered, or use the browser's install option. On iPhone/iPad, use Safari's **Share → Add to Home Screen**.
+3. Launch from the installed app icon. The planner and SketchUp import work offline after the initial files are cached.
+
+Installation and service-worker caching require **HTTPS**, or localhost for development; they are not available from `file://`. Browser install UI varies. See [MDN's PWA installability requirements](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable).
+
+The service worker caches only the packaged app files. Models and projects remain local and are not uploaded or stored in this cache. **Save project** downloads JSON; projects are not automatically saved across closing the app. When an update is ready, save your project and close all app windows/tabs before reopening. Updates never force-reload an open plan. Browser cache eviction/clearing can require another online visit.
+
+You can still send **just `docs/index.html`** for direct offline use: recipients save it locally and double-click it in Chrome. The parser is embedded, and no server, PWA installation, vendor folder, Python, or Node/npm is needed for that mode.
+
+### Build and test (developers only)
 
 ```sh
 npm run build:distrib
+npm test
+npm run preview:pwa
 ```
 
-This development-only command rebuilds the parser, embeds it into the HTML, and creates the ZIP using an explicit file list. It includes no sample models, saved projects, backups, or account data. Only the files in the generated package need to be shared.
+Open **http://localhost:8000/** for localhost installation/offline testing. Stop the preview with Ctrl+C. Each `npm run build:distrib` increments the patch version in `package.json` (for example, `0.1.0` → `0.1.1`), synchronizes `package-lock.json`, and stamps the new version beside the title in both `cut-planner.html` and `docs/index.html`. Commit the version files along with the generated `docs/` files. Changes belong in `cut-planner.html`, `pwa/`, or the build scripts; regenerate `docs/` before publishing. The builder embeds the parser and PWA client, generates icons, and uses a content-based cache version to invalidate changed app assets. No ZIP, sample models, saved projects, backups, or development tools are included.
 
-To check the packaged HTML in installed Chrome:
+Optional browser checks use locally installed Chrome (macOS default; set `CHROME_BIN` for another Chrome/Chromium executable):
 
 ```sh
-python3 tests/browser_skp_smoke.py docs/Workshop-Cut-Planner.html
+npm run test:pwa:browser
+python3 tests/browser_skp_smoke.py docs/index.html
 ```
+
+The PWA check requires Node 22+ and uses a temporary localhost server/profile. It validates the manifest and subdirectory scope, switches Chrome offline, reloads the app, and imports the sample SKP. The second check verifies direct `file://` operation.
+
+## Mobile layout
+
+On screens up to 800px wide, materials and parts use compact summary rows that expand into editing cards when selected (one open at a time), with a red remove button available even when a row is closed. The generated parts list and each stock piece’s parts/cut sequence sections start collapsed on mobile and can be opened with Show; they remain expanded on desktop and in print. Result lists become labeled cards, controls wrap with larger touch targets, and diagrams stack above their parts/cut lists. This avoids horizontal scrolling while preserving the desktop table layout and printed output. Projects and SKP import work through the same browser workflow.
 
 ## Current planner capabilities
 
@@ -101,6 +124,7 @@ The browser planner currently supports:
 	- If a bubble overlaps an earlier cut bubble, it anchors at the cut end (`to` endpoint) instead.
 	- If both endpoints are crowded, the end anchor is retained rather than drifting along the cut.
 - Marked cut lines centered within visible inter-part gaps when a gap exists.
+- Identical layouts for the same stock material are consolidated into one screen card and printed layout page. Headings identify the original sheet/board numbers and repeat count; nonconsecutive numbers are listed explicitly. Parts/cut tables on a shared plan apply to each stock piece, while project totals still count all stock pieces and parts.
 - Per-layout side tables for each sheet/board card:
 	- Parts on this stock piece (label, name, size, quantity).
 	- Cut sequence table with cut spans, cut positions, result tags and completion checkboxes. Cut span is the full distance across the current stock, which can include material removed by later cuts; it is not the finished part dimension. Positions use the current piece’s left/top edge or board start in the selected units. When an earlier cut creates that edge, the position references its cut number and accounts for kerf.

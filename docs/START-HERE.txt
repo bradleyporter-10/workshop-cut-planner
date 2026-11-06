@@ -1,18 +1,27 @@
-WORKSHOP CUT PLANNER — OFFLINE EDITION
+WORKSHOP CUT PLANNER v0.1.24 — INSTALLABLE / OFFLINE EDITION
 
-1. Extract this ZIP into a folder on your computer.
-2. Open Workshop-Cut-Planner.html in a current desktop browser (Chrome tested).
-   If needed, right-click the HTML file and choose Open With > Google Chrome.
-3. Import a SketchUp (SKP) file, import a CSV, or enter your parts manually.
-4. Click Optimize cut plan, then Print / Save PDF for a shop copy.
+INSTALL AS AN APP
+1. Open the published HTTPS site in your browser while online.
+2. Wait for 'Ready for offline use' at the bottom of the page.
+3. Click Install app when offered, or use your browser's install menu.
+   On iPhone/iPad, use Safari > Share > Add to Home Screen.
+4. Once cached, the app opens and imports SketchUp files offline.
 
-No installation, account, internet connection, or server is required.
-Everything needed to run the planner is embedded in the HTML file.
-You can also share just Workshop-Cut-Planner.html; this text file is optional.
+No backend, account, or runtime third-party services are required.
+For hosting, publish this entire docs folder, including icons and sw.js.
+Installation requires HTTPS (localhost is supported for development).
 
-Your models and projects are processed in your browser and are not uploaded.
-Use Save project to download your project JSON before closing the browser.
-Use Open project to restore a saved JSON project later.
+DIRECT FILE USE
+You can still save index.html alone and double-click it to run locally.
+The SketchUp parser is embedded; no server or installation is needed.
+PWA installation/caching is not enabled when opening a file:// URL.
 
-SketchUp import is beta. Review imported dimensions and quantities.
-Always verify stock sizes, kerf, dimensions, and cut sequence before cutting.
+PROJECTS AND UPDATES
+Your models and projects stay in your browser and are not uploaded.
+Use Save project to download JSON before closing or installing an update.
+Use Open project to restore a saved project; projects are not auto-saved.
+Updates wait until all app windows/tabs are closed; no automatic reload.
+Browser cache clearing or eviction may require an online visit again.
+
+SketchUp import is beta. Review dimensions, quantities, kerf and cut sequence
+before cutting. Always verify the plan against your physical stock.

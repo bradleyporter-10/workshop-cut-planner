@@ -1,0 +1,175 @@
+// Real Chrome + temporary localhost host, using built-in Node APIs only (Node 22+).
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
+const http = require('node:http');
+const {spawn} = require('node:child_process');
+const root = path.resolve(__dirname,'..');
+const chromePath = process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const prefix = '/workshop-cut-planner/';
+const mime = {'.html':'text/html','.js':'text/javascript','.webmanifest':'application/manifest+json','.png':'image/png'};
+const server = http.createServer((req,res)=>{
+    const pathname = new URL(req.url,'http://localhost').pathname;
+    if (!pathname.startsWith(prefix)) {res.writeHead(404).end();return;}
+    const file = path.resolve(root,'docs',pathname.slice(prefix.length)||'index.html');
+    if (!file.startsWith(path.join(root,'docs')+path.sep) || !fs.existsSync(file)) {res.writeHead(404).end();return;}
+    res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'text/plain','Cache-Control':'no-store'});
+    res.end(fs.readFileSync(file));
+});
+let chrome, socket, profile, deadline;
+const pending = new Map();
+let serial = 0;
+function command(method, params={}, sessionId) {
+    return new Promise((resolve,reject)=>{
+        const id=++serial;
+        pending.set(id,{resolve,reject});
+        socket.send(JSON.stringify({id,method,params,...(sessionId?{sessionId}:{})}));
+    });
+}
+(async()=>{
+    await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+    const url = `http://127.0.0.1:${server.address().port}${prefix}`;
+    profile = fs.mkdtempSync(path.join(os.tmpdir(),'cut-planner-pwa-'));
+    chrome = spawn(chromePath,['--headless','--disable-gpu','--no-first-run','--no-default-browser-check',
+        '--disable-background-networking','--disable-sync','--disable-extensions',
+        '--remote-debugging-port=0','--user-data-dir='+profile,'about:blank'],{stdio:['ignore','ignore','pipe']});
+    const endpoint = await new Promise((resolve,reject)=>{
+        let output='';
+        deadline=setTimeout(()=>reject(Error('Chrome startup timed out')),15000);
+        chrome.once('error',reject);
+        chrome.stderr.on('data',bytes=>{
+            output+=bytes;
+            const found=output.match(/DevTools listening on (ws:\/\/[^\s]+)/);
+            if(found){clearTimeout(deadline);resolve(found[1]);}
+        });
+    });
+    socket = new WebSocket(endpoint);
+    await new Promise((resolve,reject)=>{socket.onopen=resolve;socket.onerror=reject;});
+    socket.onmessage=event=>{
+        const message=JSON.parse(event.data), task=pending.get(message.id);
+        if(task){pending.delete(message.id);message.error?task.reject(Error(message.error.message)):task.resolve(message.result);}
+    };
+    const {targetId}=await command('Target.createTarget',{url:'about:blank'});
+    const {sessionId}=await command('Target.attachToTarget',{targetId,flatten:true});
+    const evaluate = async expression=>{
+        const result=await command('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true},sessionId);
+        if(result.exceptionDetails)throw Error(result.exceptionDetails.text+': '+result.result.description);
+        return result.result.value;
+    };
+    await command('Page.enable',{},sessionId);
+    await command('Network.enable',{},sessionId);
+    await command('Page.navigate',{url},sessionId);
+    async function waitFor(expression) {
+        for(let i=0;i<100;i++){
+            if(await evaluate(expression))return;
+            await new Promise(resolve=>setTimeout(resolve,100));
+        }
+        throw Error('Timed out waiting for '+expression);
+    }
+    await waitFor('document.readyState === "complete" && typeof loadSkpIntoParts === "function"');
+    await evaluate('navigator.serviceWorker.ready.then(()=>true)');
+    await waitFor('!!navigator.serviceWorker.controller');
+    const registration=await evaluate('navigator.serviceWorker.ready.then(r=>r.scope)');
+    assert.equal(registration,url);
+    const manifest=await command('Page.getAppManifest',{},sessionId);
+    assert.equal(manifest.errors.length,0,JSON.stringify(manifest.errors));
+    await command('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0},sessionId);
+    await command('Page.reload',{},sessionId);
+    await waitFor('document.readyState === "complete" && typeof loadSkpIntoParts === "function" && !navigator.onLine');
+    const fixture=fs.readFileSync(path.join(root,'sketchup-examples/playroom cabinets.skp')).toString('base64');
+    const count=await evaluate(`(async()=>{const bytes=Uint8Array.from(atob(${JSON.stringify(fixture)}),c=>c.charCodeAt(0));await loadSkpIntoParts(new File([bytes],'fixture.skp'));return parts.length;})()`);
+    assert.ok(count>0);
+    await evaluate(`demo(); $('optimize').click(); parts[0].name='A long descriptive cabinet component name that should fit on a small phone'; materials[0].name='A long descriptive plywood material name for testing'; renderAll(); renderResults(); true`);
+    const consolidation=await evaluate(`(()=>{
+        const original=last,checks=[];
+        for(const kind of ['sheet','lumber']){
+            const b=original.layouts.find(layout=>layout.kind===kind);
+            if(!b)throw Error('Example must include '+kind);
+            last={...original,layouts:[b,{...b},{...b}]};
+            renderResults();
+            preparePrintRoot();
+            checks.push({kind,cards:document.querySelectorAll('#layouts>.sheet-card').length,
+                repeat:document.querySelector('#layouts>.sheet-card').dataset.repeatCount,
+                heading:document.querySelector('#layouts h3').textContent,
+                pages:document.querySelectorAll('#print-root .sheet-card:not(.print-cover)').length,
+                parts:+document.querySelector('#summary .stat strong').textContent,expected:b.count*3});
+            cleanupPrintRoot();
+        }
+        last=original;renderResults();
+        return JSON.stringify(checks);
+    })()`);
+    for(const check of JSON.parse(consolidation)){
+        assert.equal(check.cards,1);
+        assert.equal(check.pages,1,'identical layouts print once');
+        assert.equal(check.repeat,'3');
+        assert.ok(check.heading.includes('1–3 · Repeat 3 times'));
+        assert.equal(check.parts,check.expected,'totals still count all physical pieces');
+    }
+    for(const width of [320,375,390,600,768,1366]) {
+        await command('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<800},sessionId);
+        await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve(true))))');
+        const layout=await evaluate(`JSON.stringify({
+            viewport:document.documentElement.clientWidth,
+            page:document.documentElement.scrollWidth,
+            overflows:Array.from(document.querySelectorAll('main .tablewrap')).filter(el=>el.scrollWidth>el.clientWidth+1).length,
+            tableDisplay:getComputedStyle(document.querySelector('#materials tr')).display,
+            labeled:!!document.querySelector('#parts td[data-label="Part label"]')
+        })`);
+        const metrics=JSON.parse(layout);
+        assert.ok(metrics.page<=metrics.viewport+1,`Page overflows at ${width}px: ${layout}`);
+        if(width<=800){
+            const toolbar=JSON.parse(await evaluate("JSON.stringify({header:Array.from(document.querySelectorAll('header .controls>.btn,header .controls>.units-control')).filter(el=>!el.hidden).map(el=>el.getBoundingClientRect().height),parts:Array.from(document.querySelectorAll('.parts-toolbar>.btn')).map(el=>({width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height}))})"));
+            assert.ok(toolbar.header.every(height=>height===36),'header actions have consistent compact height');
+            assert.ok(toolbar.parts.every(item=>item.height===36),'parts actions have consistent compact height');
+            assert.ok(toolbar.parts.every(item=>Math.abs(item.width-toolbar.parts[0].width)<1),'parts actions use equal widths');
+            const fields=JSON.parse(await evaluate("JSON.stringify(['kerf','margin','quality','diagramscale'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return {x:r.x,y:r.y};}))"));
+            for(let i=0;i<fields.length;i+=2){
+                if(fields[i].x!==fields[i+1].x)assert.ok(Math.abs(fields[i].y-fields[i+1].y)<1,'Optimize fields align despite wrapped labels');
+            }
+            assert.ok(await evaluate("Array.from(document.querySelectorAll('.mobile-section-content')).every(el=>getComputedStyle(el).display==='none')"),'mobile result sections start collapsed');
+            await evaluate("document.querySelector('#layoutparts .mobile-section-toggle').click();true");
+            assert.notEqual(await evaluate("getComputedStyle(document.querySelector('#layoutparts .mobile-section-content')).display"),'none');
+            await evaluate("document.querySelector('#layoutparts .mobile-section-toggle').click();true");
+            if(width===320){
+                const counts=await evaluate('JSON.stringify({parts:parts.length,materials:materials.length})');
+                await evaluate("document.querySelector('#parts tr:last-child .mobile-row-remove').click();document.querySelector('#materials tr:last-child .mobile-row-remove').click();true");
+                const before=JSON.parse(counts);
+                assert.equal(await evaluate('parts.length'),before.parts-1,'collapsed part removed directly');
+                assert.equal(await evaluate('materials.length'),before.materials-1,'collapsed material removed directly');
+                assert.equal(await evaluate("document.querySelectorAll('#parts .mobile-editing,#materials .mobile-editing').length"),0,'removal does not open editor');
+            }
+            assert.equal(metrics.overflows,0,`Tables overflow at ${width}px`);
+            assert.equal(metrics.tableDisplay,'block');
+            assert.ok(await evaluate("document.querySelector('#parts tr').getBoundingClientRect().height < 70"),'collapsed rows stay compact');
+            await evaluate("document.querySelector('#parts .mobile-row-toggle').click();true");
+            assert.equal(await evaluate("document.querySelectorAll('#parts .mobile-editing,#materials .mobile-editing').length"),1);
+            assert.equal(await evaluate("getComputedStyle(document.querySelector('#parts tr')).display"),'grid');
+            await evaluate("{const field=document.querySelector('#parts tr input[data-field=name]');field.value='Edited mobile part';field.dispatchEvent(new Event('input',{bubbles:true}));}true");
+            assert.equal(await evaluate("parts[0].name"),'Edited mobile part');
+            assert.equal(await evaluate("document.querySelector('#parts .mobile-row-name').textContent"),'Edited mobile part');
+            await evaluate("document.querySelector('#materials .mobile-row-toggle').click();true");
+            assert.equal(await evaluate("document.querySelectorAll('#parts .mobile-editing,#materials .mobile-editing').length"),1,'only one editor stays open');
+            await evaluate("document.querySelector('#materials .mobile-row-toggle').click();true");
+            assert.ok(metrics.labeled);
+        }
+        if(width===1366){
+            assert.equal(metrics.tableDisplay,'table-row','desktop table layout retained');
+            assert.ok(await evaluate("Array.from(document.querySelectorAll('.mobile-section-content')).every(el=>getComputedStyle(el).display!=='none')"),'desktop result sections remain visible');
+        }
+    }
+    await command('Emulation.setDeviceMetricsOverride',{width:390,height:900,deviceScaleFactor:1,mobile:true},sessionId);
+    await command('Emulation.setEmulatedMedia',{media:'print'},sessionId);
+    assert.equal(await evaluate("getComputedStyle(document.querySelector('.cut-sequence-table tbody tr')).display"),'table-row','printed cut list remains a table');
+    assert.ok(await evaluate("Array.from(document.querySelectorAll('.mobile-section-content')).every(el=>getComputedStyle(el).display!=='none')"),'collapsed mobile sections stay visible in print');
+    await command('Emulation.setEmulatedMedia',{media:''},sessionId);
+    console.log('PASS: Mobile page widths 320–768px fit the viewport; phone tables use labeled cards; desktop tables remain intact.');
+    console.log(`PASS: Chrome validated the manifest, controlled the repository subpath, reloaded offline, and imported ${count} grouped SKP parts.`);
+})().catch(error=>{console.error(error);process.exitCode=1;}).finally(async()=>{
+    clearTimeout(deadline);
+    if(socket){try{await command('Browser.close');}catch{}socket.close();}
+    if(chrome&&chrome.exitCode===null){chrome.kill();await new Promise(resolve=>{chrome.once('exit',resolve);setTimeout(resolve,3000);});}
+    server.closeAllConnections();
+    await new Promise(resolve=>server.close(resolve));
+    if(profile)fs.rmSync(profile,{recursive:true,force:true,maxRetries:5,retryDelay:100});
+});
