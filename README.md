@@ -67,7 +67,7 @@ It uses installed macOS Chrome by default; set `CHROME_BIN` to another Chrome/Ch
 
 ## Share the offline planner
 
-The `distrib/` directory contains a ready-to-send **Workshop-Cut-Planner.zip**. Recipients extract it and double-click **Workshop-Cut-Planner.html**. The parser is embedded, so the HTML file can also be sent on its own; `START-HERE.txt` is optional instructions. No vendor folder, Python, Node/npm, installation, account, server, or internet access is needed to run it.
+The `docs/` directory contains a ready-to-send **Workshop-Cut-Planner.zip**. Recipients extract it and double-click **Workshop-Cut-Planner.html**. The parser is embedded, so the HTML file can also be sent on its own; `START-HERE.txt` is optional instructions. No vendor folder, Python, Node/npm, installation, account, server, or internet access is needed to run it.
 
 Rebuild the distribution after changing the planner or parser:
 
@@ -80,7 +80,7 @@ This development-only command rebuilds the parser, embeds it into the HTML, and 
 To check the packaged HTML in installed Chrome:
 
 ```sh
-python3 tests/browser_skp_smoke.py distrib/Workshop-Cut-Planner.html
+python3 tests/browser_skp_smoke.py docs/Workshop-Cut-Planner.html
 ```
 
 ## Current planner capabilities

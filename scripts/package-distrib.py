@@ -4,7 +4,7 @@ import re
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-output = ROOT / 'distrib'
+output = ROOT / 'docs'
 output.mkdir(exist_ok=True)
 html = (ROOT / 'cut-planner.html').read_text()
 bundle = (ROOT / 'vendor/openskp/browser-bundle.js').read_text()
@@ -49,4 +49,4 @@ with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED) as package:
         info.external_attr = 0o100644 << 16
         package.writestr(info, (output / filename).read_bytes())
 print(f'Packaged {archive.relative_to(ROOT)} ({archive.stat().st_size:,} bytes)')
-print(f'Standalone HTML: distrib/{name}')
+print(f'Standalone HTML: docs/{name}')
