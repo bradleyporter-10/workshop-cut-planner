@@ -125,6 +125,11 @@ function command(method, params={}, sessionId) {
             tableDisplay:getComputedStyle(document.querySelector('#materials tr')).display,
             labeled:!!document.querySelector('#parts td[data-label="Part label"]')
         })`);
+        const optimizeFields=JSON.parse(await evaluate("JSON.stringify(['kerf','margin','quality','layoutgoal','diagramscale'].map(id=>{const field=document.getElementById(id),label=field.closest('label'),caption=label.querySelector('.labelcap');return {top:field.getBoundingClientRect().top,row:label.getBoundingClientRect().top,gap:field.getBoundingClientRect().top-caption.getBoundingClientRect().bottom};}))"));
+        for(const field of optimizeFields){
+            assert.ok(field.gap>=5&&field.gap<=7,`caption stays directly above control at ${width}px`);
+            for(const other of optimizeFields)if(Math.abs(field.row-other.row)<1)assert.ok(Math.abs(field.top-other.top)<1,`Optimize controls align at ${width}px`);
+        }
         const metrics=JSON.parse(layout);
         assert.ok(metrics.page<=metrics.viewport+1,`Page overflows at ${width}px: ${layout}`);
         if(width<=800){
@@ -132,8 +137,8 @@ function command(method, params={}, sessionId) {
             assert.ok(toolbar.header.every(height=>height===36),'header actions have consistent compact height');
             assert.ok(toolbar.parts.every(item=>item.height===36),'parts actions have consistent compact height');
             assert.ok(toolbar.parts.every(item=>Math.abs(item.width-toolbar.parts[0].width)<1),'parts actions use equal widths');
-            const fields=JSON.parse(await evaluate("JSON.stringify(['kerf','margin','quality','diagramscale'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return {x:r.x,y:r.y};}))"));
-            for(let i=0;i<fields.length;i+=2){
+            const fields=JSON.parse(await evaluate("JSON.stringify(['kerf','margin','quality','layoutgoal','diagramscale'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return {x:r.x,y:r.y};}))"));
+            for(let i=0;i+1<fields.length;i+=2){
                 if(fields[i].x!==fields[i+1].x)assert.ok(Math.abs(fields[i].y-fields[i+1].y)<1,'Optimize fields align despite wrapped labels');
             }
             assert.ok(await evaluate("Array.from(document.querySelectorAll('.mobile-section-content')).every(el=>getComputedStyle(el).display==='none')"),'mobile result sections start collapsed');
@@ -172,6 +177,48 @@ function command(method, params={}, sessionId) {
     assert.equal(await evaluate("getComputedStyle(document.querySelector('.cut-sequence-table tbody tr')).display"),'table-row','printed cut list remains a table');
     assert.ok(await evaluate("Array.from(document.querySelectorAll('.mobile-section-content')).every(el=>getComputedStyle(el).display!=='none')"),'collapsed mobile sections stay visible in print');
     await command('Emulation.setEmulatedMedia',{media:''},sessionId);
+    const lumber=JSON.parse(await evaluate(`(()=>{
+        const m={id:'wide-board',name:'6-inch lumber',type:'lumber',width:6,length:96,thickness:.75};
+        const p={name:'Rail',width:2.5,length:80,thickness:.75,material:m.id};
+        const plans=boardPlan(m,[{...p},{...p}],.125,0);
+        last={layouts:plans,kerf:.125,margin:0};renderResults();
+        return JSON.stringify({boards:plans.length,lanes:plans[0].placements.map(z=>z.y),
+            cuts:plans[0].cuts.length,rows:document.querySelectorAll('.cut-sequence-table tbody tr').length,
+            text:document.querySelector('.cut-sequence-table').textContent});
+    })()`));
+    assert.equal(lumber.boards,1,'two narrow rails share one wide board in the actual app');
+    assert.notEqual(lumber.lanes[0],lumber.lanes[1]);
+    assert.equal(lumber.rows,lumber.cuts);
+    assert.ok(lumber.text.includes('rip')&&lumber.text.includes('crosscut'));
+    console.log('PASS: Two 2.5-inch rails share one 6-inch board, with rip cuts and crosscuts in the output.');
+    const balancedUI=JSON.parse(await evaluate(`(()=>{
+        materials=[{id:'balanced-ui',name:'Plywood',type:'sheet',width:48,length:96,thickness:.75}];
+        parts=[[13,36],[22,60],[7,24],[10,28],[25,16],[10,16],[13,44],[22,20],[13,60],[10,52],[25,40],[19,24],[4,36],[4,36]].map(([width,length],i)=>({id:uid(),name:'Part '+i,width,length,thickness:.75,quantity:1,material:'balanced-ui'}));
+        renderAll();$('quality').value='better';$('layoutgoal').value='balanced';$('optimize').click();
+        return JSON.stringify({goal:last.layoutGoal,effort:sheetPlanEffort(last.layouts),info:$('runinfo').textContent});
+    })()`));
+    assert.equal(balancedUI.goal,'balanced');
+    assert.equal(balancedUI.effort.sheets,2);
+    assert.equal(balancedUI.effort.cuts,24);
+    assert.ok(balancedUI.info.includes('Balanced'));
+    console.log('PASS: Balanced UI generates a lower-cut plan and records the selected goal.');
+    const preference=await evaluate(`(async()=>{
+        $('layoutgoal').value='balanced';
+        let savedJSON;
+        const originalDownload=download;
+        download=(name,content)=>savedJSON=content;
+        $('saveproject').click();
+        download=originalDownload;
+        if(JSON.parse(savedJSON).layoutGoal!=='balanced')throw Error('Goal was not saved');
+        $('layoutgoal').value='material';
+        await $('projectfile').onchange({target:{files:[{text:async()=>savedJSON}]}});
+        if($('layoutgoal').value!=='balanced')throw Error('Goal was not restored');
+        const legacy=JSON.parse(savedJSON);delete legacy.layoutGoal;
+        await $('projectfile').onchange({target:{files:[{text:async()=>JSON.stringify(legacy)}]}});
+        if($('layoutgoal').value!=='material')throw Error('Legacy project did not use the default');
+        return true;
+    })()`);
+    assert.ok(preference,'planning preference saves/restores with backwards-compatible defaults');
     htmlRevision=1;
     await command('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1},sessionId);
     await command('Page.reload',{},sessionId);
@@ -185,6 +232,10 @@ function command(method, params={}, sessionId) {
     await command('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1},sessionId);
     await evaluate('navigator.serviceWorker.getRegistration().then(r=>r.update()).then(()=>true)');
     await waitFor('navigator.serviceWorker.getRegistration().then(r=>!!r.waiting)');
+    await waitFor("document.querySelector('header #pwa-refresh')?.dataset.updateReady==='true'");
+    assert.ok(await evaluate("document.getElementById('pwa-refresh').title.includes('Save your project')"));
+    assert.equal(await evaluate("getComputedStyle(document.getElementById('pwa-refresh'),'::after').backgroundColor"),'rgb(34, 197, 94)','update badge is green');
+
     await evaluate("window.__beforePwaRefresh=true;window.confirm=()=>true;document.getElementById('pwa-refresh').click();true");
     await waitFor("document.readyState==='complete' && typeof window.__beforePwaRefresh==='undefined' && !!document.getElementById('pwa-refresh') && caches.keys().then(keys=>keys.some(key=>key.endsWith('smoke-revision-1')))");
     console.log('PASS: Install control hides correctly; a simulated deployment is detected and activated through Refresh app.');

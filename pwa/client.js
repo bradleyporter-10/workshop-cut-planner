@@ -21,11 +21,12 @@
     const refresh = document.createElement('button');
     refresh.type = 'button';
     refresh.id = 'pwa-refresh';
-    refresh.className = 'btn';
+    refresh.className = 'btn no-print';
     refresh.textContent = 'Refresh app';
     refresh.title = 'Check for an update and refresh the app. Save your project first.';
     refresh.disabled = true;
-    panel.append(status, refresh);
+    panel.append(status);
+    document.querySelector('header .controls')?.append(refresh);
     document.body.append(panel);
     let installPrompt, registration, lastCheck = 0, checkInProgress, reloadRequested = false, newerController = false;
     let hadController = !!navigator.serviceWorker?.controller;
@@ -65,8 +66,15 @@
     });
     syncInstall();
     const showStatus = () => {
-        if (registration?.waiting || newerController) {
-            status.textContent = 'Update ready. Save your project, then select Refresh app.';
+        const updateReady = !!(registration?.waiting || newerController);
+        refresh.setAttribute('data-update-ready', String(updateReady));
+        refresh.title = updateReady
+            ? 'Update available. Save your project JSON files before refreshing; unsaved changes will be lost.'
+            : 'Check for an update and refresh the app. Save your project files first.';
+        refresh.setAttribute('aria-label', refresh.title);
+        status.className = updateReady ? 'pwa-update-announcement' : '';
+        if (updateReady) {
+            status.textContent = 'Update available. Save your project files, then use Refresh app in the top banner.';
         } else if (registration?.active) {
             status.textContent = navigator.onLine ? 'Ready for offline use. Save project JSON to keep your work.' : 'Working offline. Save project JSON to keep your work.';
         }

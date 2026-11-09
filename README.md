@@ -81,7 +81,7 @@ Installation and service-worker caching require **HTTPS**, or localhost for deve
 
 Page loads and reloads try the published `index.html` first with the HTTP cache bypassed; if the network fails or takes more than four seconds, the app opens the most recently cached working page. Successful online page loads refresh that offline copy. Other app assets remain cache-first. This means an ordinary reload picks up published HTML changes without a DevTools cache bypass, while offline launches still work. Publish a complete `npm run build:distrib` output, including `docs/sw.js`.
 
-The service worker caches only the packaged app files. Models and projects remain local and are not uploaded or stored in this cache. **Save project** downloads JSON; projects are not automatically saved across closing the app. The app checks for updates on launch, when brought back into view (at most once per minute), when reconnecting, and every five minutes while visible and online. When an update is ready, save your project and select **Refresh app** at the bottom. This checks immediately, activates the downloaded update, and reloads only after confirmation. You can also close all app windows/tabs and reopen. Other open windows are not forcibly reloaded. Browser cache eviction/clearing can require another online visit.
+The service worker caches only the packaged app files. Models and projects remain local and are not uploaded or stored in this cache. **Save project** downloads JSON; projects are not automatically saved across closing the app. The app checks for updates on launch, when brought back into view (at most once per minute), when reconnecting, and every five minutes while visible and online. When an update is ready, save your project and select **Refresh app** in the top banner. A green dot marks an available update; its hover tooltip reminds you to save project JSON files before refreshing. This checks immediately, activates the downloaded update, and reloads only after confirmation. You can also close all app windows/tabs and reopen. Other open windows are not forcibly reloaded. Browser cache eviction/clearing can require another online visit.
 
 You can still send **just `docs/index.html`** for direct offline use: recipients save it locally and double-click it in Chrome. The parser is embedded, and no server, PWA installation, vendor folder, Python, or Node/npm is needed for that mode.
 
@@ -104,6 +104,17 @@ python3 tests/browser_skp_smoke.py docs/index.html
 
 The PWA check requires Node 22+ and uses a temporary localhost server/profile. It validates the manifest and subdirectory scope, switches Chrome offline, reloads the app, and imports the sample SKP. The second check verifies direct `file://` operation.
 
+## Sheet layout goals
+
+In **3. Optimize → Sheet layout goal**, choose:
+
+- **Minimum material** (default): preserves the existing search, prioritizing sheet count and fuller early sheets.
+- **Balanced — fewer cuts**: considers additional cutting-oriented and consistent-orientation layouts. It scores sheet count, numbered cut operations, and non-square parts placed with their longer dimension across the sheet. It can spend an extra sheet when the improvement justifies it. Extra sheets are capped at the larger of one sheet or 15% of the minimum-material result, rounded down, per material group. For small jobs the smallest possible increase is one whole sheet.
+
+Balanced mode is a heuristic, not a guarantee of minimum cuts or material. It includes the minimum-material plan as a fallback. The sheet count and waste may increase, and some rotations remain necessary to fit parts. This is not a grain-direction constraint. Lumber packing is unchanged by this sheet setting. Optimization passes controls how many alternatives are tried; Balanced mode evaluates additional alternatives and can take longer.
+
+The selected goal is saved in project JSON; older project files default to Minimum material. The result header records which goal produced the displayed layouts. Re-optimize after changing the goal to compare plans.
+
 ## Mobile layout
 
 On screens up to 800px wide, materials and parts use compact summary rows that expand into editing cards when selected (one open at a time), with a red remove button available even when a row is closed. The generated parts list and each stock piece’s parts/cut sequence sections start collapsed on mobile and can be opened with Show; they remain expanded on desktop and in print. Result lists become labeled cards, controls wrap with larger touch targets, and diagrams stack above their parts/cut lists. This avoids horizontal scrolling while preserving the desktop table layout and printed output. Projects and SKP import work through the same browser workflow.
@@ -118,7 +129,7 @@ The browser planner currently supports:
 - Part name, width, length, thickness, quantity and material assignment.
 - Default **0.125 in (1/8 in)** blade kerf and configurable edge trim/margin.
 - 90° rotation without grain-direction constraints.
-- Sheet packing using multiple guillotine-cut heuristics and board allocation for lumber.
+- Sheet and lumber packing using multiple guillotine-cut heuristics. Narrow lumber parts can share the board width side by side, with kerf and margins reserved. Lumber prefers the longer fitting dimension along the board and includes numbered rip cuts and crosscuts; utilization is measured by area.
 - Labeled SVG diagrams with stable part-letter IDs (`A..Z`, then `AA..ZZ`) shared across diagrams and parts lists.
 - Part names, ID bubbles, and dimensions share reserved spaces inside each part; text adapts to small parts while ID bubbles retain their full size. Dimensions run parallel to the edges they measure.
 - Numbered cut-line bubbles for cut sequence tracking on sheets and lumber:
@@ -130,7 +141,7 @@ The browser planner currently supports:
 - Per-layout side tables for each sheet/board card:
 	- Parts on this stock piece (label, name, size, quantity).
 	- Cut sequence table with cut spans, cut positions, result tags and completion checkboxes. Cut span is the full distance across the current stock, which can include material removed by later cuts; it is not the finished part dimension. Positions use the current piece’s left/top edge or board start in the selected units. When an earlier cut creates that edge, the position references its cut number and accounts for kerf.
-- Usage summaries and grouped material stats.
+- Usage summaries and grouped material stats, including Number of Cuts across all physical stock pieces and area-weighted Total Waste % across sheets and boards (including kerf, trim, and offcuts). Repeated/consolidated layouts still count every copy.
 - Print/PDF output tailored for shop use:
 	- Dedicated print-root flow (no popup dependency).
 	- Cover page with project summary and parts list.
@@ -251,7 +262,7 @@ The supplied SKP was previously inspected at the name/classification level, and 
 - Support **separate stock thicknesses** and materials, including common plywood and lumber sizes.
 - Add configurable per-part **length/width allowances** (e.g., +1 in total rail length for two 1/2-in tenons), explicitly distinguished from modeled sizes.
 - Add tests for sheet/board packing: fit within usable stock, no overlapping parts, correct kerf and margins, feasible guillotine cut tree, proper rotations, correct totals.
-- Improve lumber optimization where relevant for fixed-width stock; clarify whether an input part may rotate along the board length and how board width is treated.
+- Add configurable lumber grain/orientation constraints; current lumber packing chooses the longer fitting part dimension along the board and reuses remaining width for narrower parts.
 - Improve diagram/PDF output, including clear sheet/board numbering, part ID, dimensions, cut order if available, scale and printable labels.
 - Explore **direct browser `.skp` upload** after determining if an OpenSKP TypeScript/browser implementation is reliable; retain CSV as a stable fallback.
 

@@ -24,7 +24,7 @@ async function setup({ios=false,standalone=false,waiting=false}={}) {
     };
     vm.runInNewContext(source,context);
     await new Promise(resolve=>setImmediate(resolve));
-    return {buttons,events,serviceEvents,media,mediaEvents,messages,context,registration,
+    return {root,buttons,events,serviceEvents,media,mediaEvents,messages,context,registration,
         counts:()=>({reloads,updates,confirmations})};
 }
 (async()=>{
@@ -48,6 +48,10 @@ async function setup({ios=false,standalone=false,waiting=false}={}) {
     await refresh.events.click();
     assert.equal(normal.counts().reloads,before,'cancel never reloads');
     const update=await setup({waiting:true});
+    assert.ok(update.root.children.includes(update.buttons[1]),'refresh control lives in the top banner');
+    assert.equal(update.buttons[1]['data-update-ready'],'true');
+    assert.ok(update.buttons[1].title.includes('Update available'));
+    assert.ok(update.buttons[1].title.includes('Save your project JSON files'));
     await update.buttons[1].events.click();
     assert.equal(update.counts().confirmations,1);
     assert.equal(update.messages[0].type,'SKIP_WAITING');

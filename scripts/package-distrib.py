@@ -84,7 +84,8 @@ Your models and projects stay in your browser and are not uploaded.
 Use Save project to download JSON before closing or installing an update.
 Use Open project to restore a saved project; projects are not auto-saved.
 Online launches/reloads fetch the published page; offline launches use cache.
-Use Refresh app at the bottom to check/apply updates after saving your JSON.
+Use Refresh app in the top banner to check/apply updates after saving your JSON.
+A green dot marks an available update; hover for the save-project reminder.
 Updates are also checked on launch, return to the app, and periodically online.
 Reloads require confirmation; alternatively close all app windows and reopen.
 Browser cache clearing or eviction may require an online visit again.
