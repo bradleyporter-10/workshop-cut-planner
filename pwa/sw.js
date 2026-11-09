@@ -36,9 +36,34 @@ self.addEventListener('fetch', event => {
     const target = url.href;
     const appNavigation = event.request.mode === 'navigate' && (target === ROOT || target === INDEX);
     if (!appNavigation && !ASSETS.includes(target)) return;
-    // Cache only packaged app files, never imported models, projects, or other sites.
+    // Navigations prefer the published HTML, bypassing the browser HTTP cache.
+    // The parser and app code are embedded, so a fresh page is self-contained
+    // even if a previous service worker is still controlling this window.
+    if (appNavigation) {
+        event.respondWith((async () => {
+            const cache = await caches.open(CACHE_NAME);
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 4000);
+            let response;
+            try {
+                response = await fetch(INDEX, {cache: 'no-store', signal: controller.signal});
+                if (response.ok && (response.headers.get('content-type') || '').includes('text/html')) {
+                    // Cache writes must not prevent a successful online page load.
+                    event.waitUntil(cache.put(INDEX, response.clone()).catch(() => {}));
+                    return response;
+                }
+            } catch (error) {
+                // Offline, timeout, or network error: use the last working app.
+            } finally {
+                clearTimeout(timeout);
+            }
+            return (await cache.match(INDEX)) || response || Response.error();
+        })());
+        return;
+    }
+    // Only static app assets use cache-first; never cache models or project data.
     event.respondWith((async () => {
         const cache = await caches.open(CACHE_NAME);
-        return (await cache.match(appNavigation ? INDEX : target)) || fetch(event.request);
+        return (await cache.match(target)) || fetch(event.request);
     })());
 });

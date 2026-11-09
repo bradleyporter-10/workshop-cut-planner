@@ -22,9 +22,10 @@ const scope = 'https://example.test/workshop-cut-planner/';
 const prefix = 'workshop-cut-planner:' + scope + ':';
 stores.set(prefix + 'old', new Map());
 stores.set('another-app-cache', new Map());
-let networkCalls = 0, activations = 0;
+let networkCalls = 0, activations = 0, onlineResponse = null;
+let lastFetchOptions;
 const context = {
-    URL, Request,
+    URL, Request, Response, AbortController, setTimeout, clearTimeout,
     self: {skipWaiting:async()=>{activations++;},registration:{scope}, location:{origin:'https://example.test'}, clients:{claim:async()=>{}},
         addEventListener:(type, fn)=>handlers[type]=fn},
     caches: {
@@ -33,16 +34,16 @@ const context = {
         open:async key=>{
             if (!stores.has(key)) stores.set(key,new Map());
             const items = stores.get(key);
-            return {addAll:async requests=>requests.forEach(r=>items.set(r.url,{url:r.url})), match:async url=>items.get(url)};
+            return {addAll:async requests=>requests.forEach(r=>items.set(r.url,{url:r.url})), match:async url=>{const item=items.get(url);return item?.clone?item.clone():item;},put:async(url,response)=>items.set(url,response)};
         }
     },
-    fetch:async()=>{networkCalls++;throw Error('Offline');}
+    fetch:async(url,options)=>{networkCalls++;lastFetchOptions=options;if(onlineResponse)return onlineResponse.clone();throw Error('Offline');}
 };
 vm.runInNewContext(worker, context);
 async function lifecycle(type) {let task;handlers[type]({waitUntil:p=>task=p});await task;}
 async function request(url, mode='navigate', method='GET') {
     let result;
-    handlers.fetch({request:{url,mode,method}, respondWith:p=>result=p});
+    handlers.fetch({request:{url,mode,method}, respondWith:p=>result=p,waitUntil:()=>{}});
     return result ? await result : undefined;
 }
 (async()=>{
@@ -62,6 +63,13 @@ async function request(url, mode='navigate', method='GET') {
     assert.equal(await request('https://elsewhere.test/'),undefined);
     assert.equal(await request(scope+'model.skp','cors'),undefined);
     assert.equal(await request(index,'navigate','POST'),undefined);
-    assert.equal(networkCalls,0,'pre-cached app opens with no network');
+    assert.equal(networkCalls,2,'offline navigations try network then use cached app');
+    onlineResponse=new Response('<html>NEW RELEASE</html>',{headers:{'content-type':'text/html'}});
+    assert.equal(await (await request(scope)).text(),'<html>NEW RELEASE</html>','server changes show on next navigation');
+    assert.equal(lastFetchOptions.cache,'no-store','HTML bypasses stale HTTP cache');
+    onlineResponse=null;
+    assert.equal(await (await request(scope)).text(),'<html>NEW RELEASE</html>','latest successful navigation is available offline');
+    onlineResponse=new Response('Server failure',{status:503});
+    assert.equal(await (await request(scope)).text(),'<html>NEW RELEASE</html>','server errors do not replace the working offline app');
     console.log('PWA manifest/icons, subdirectory offline navigation, scoped cache cleanup, and file mode passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

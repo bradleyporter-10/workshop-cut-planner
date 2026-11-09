@@ -9,7 +9,7 @@ const root = path.resolve(__dirname,'..');
 const chromePath = process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const prefix = '/workshop-cut-planner/';
 const mime = {'.html':'text/html','.js':'text/javascript','.webmanifest':'application/manifest+json','.png':'image/png'};
-let deploymentRevision = 0;
+let deploymentRevision = 0, htmlRevision = 0;
 const server = http.createServer((req,res)=>{
     const pathname = new URL(req.url,'http://localhost').pathname;
     if (!pathname.startsWith(prefix)) {res.writeHead(404).end();return;}
@@ -20,6 +20,7 @@ const server = http.createServer((req,res)=>{
     if(path.basename(file)==='sw.js'&&deploymentRevision){
         data=Buffer.from(data.toString().replace(/const CACHE_NAME = CACHE_PREFIX \+ '[^']+';/, `const CACHE_NAME = CACHE_PREFIX + 'smoke-revision-${deploymentRevision}';`));
     }
+    if(path.basename(file)==='index.html'&&htmlRevision)data=Buffer.from(data.toString().replace('<body>','<body data-smoke-release="'+htmlRevision+'">'));
     res.end(data);
 });
 let chrome, socket, profile, deadline;
@@ -171,6 +172,15 @@ function command(method, params={}, sessionId) {
     assert.equal(await evaluate("getComputedStyle(document.querySelector('.cut-sequence-table tbody tr')).display"),'table-row','printed cut list remains a table');
     assert.ok(await evaluate("Array.from(document.querySelectorAll('.mobile-section-content')).every(el=>getComputedStyle(el).display!=='none')"),'collapsed mobile sections stay visible in print');
     await command('Emulation.setEmulatedMedia',{media:''},sessionId);
+    htmlRevision=1;
+    await command('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1},sessionId);
+    await command('Page.reload',{},sessionId);
+    await waitFor("document.readyState==='complete' && document.body.dataset.smokeRelease==='1' && !!document.getElementById('pwa-refresh')");
+    assert.equal(await evaluate('document.body.dataset.smokeRelease'),'1','ordinary reload shows changed HTML without a worker update or cache bypass');
+    await command('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0},sessionId);
+    await command('Page.reload',{},sessionId);
+    await waitFor("document.readyState==='complete' && document.body.dataset.smokeRelease==='1' && !navigator.onLine");
+    console.log('PASS: Normal online reload fetches changed server HTML; the same latest page then reloads offline.');
     deploymentRevision=1;
     await command('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1},sessionId);
     await evaluate('navigator.serviceWorker.getRegistration().then(r=>r.update()).then(()=>true)');
