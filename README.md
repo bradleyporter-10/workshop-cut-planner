@@ -114,12 +114,12 @@ The PWA check requires Node 22+ and uses a temporary localhost server/profile. I
 
 In **3. Optimize → Sheet layout goal**, choose:
 
-- **Minimum material** (default): preserves the existing search, prioritizing sheet count and fuller early sheets.
-- **Balanced — fewer cuts**: considers additional cutting-oriented and consistent-orientation layouts. It scores sheet count, numbered cut operations, and non-square parts placed with their longer dimension across the sheet. It can spend an extra sheet when the improvement justifies it. Extra sheets are capped at the larger of one sheet or 15% of the minimum-material result, rounded down, per material group. For small jobs the smallest possible increase is one whole sheet.
+- **Minimum material**: preserves the existing search, prioritizing sheet count and fuller early sheets.
+- **Balanced — fewer cuts** (default): considers additional cutting-oriented and consistent-orientation layouts. It scores sheet count, numbered cut operations, and non-square parts placed with their longer dimension across the sheet. It can spend an extra sheet when the improvement justifies it. Extra sheets are capped at the larger of one sheet or 15% of the minimum-material result, rounded down, per material group. For small jobs the smallest possible increase is one whole sheet.
 
 Balanced mode is a heuristic, not a guarantee of minimum cuts or material. It includes the minimum-material plan as a fallback. The sheet count and waste may increase, and some rotations remain necessary to fit parts. This is not a grain-direction constraint. Lumber packing is unchanged by this sheet setting. Optimization passes controls how many alternatives are tried; Balanced mode evaluates additional alternatives and can take longer.
 
-The selected goal is saved in project JSON; older project files default to Minimum material. The result header records which goal produced the displayed layouts. Re-optimize after changing the goal to compare plans.
+The selected goal is saved in project JSON; older project files without a saved goal default to Balanced. Explicit saved Minimum material choices are preserved. The result header records which goal produced the displayed layouts. Re-optimize after changing the goal to compare plans.
 
 ## Mobile layout
 

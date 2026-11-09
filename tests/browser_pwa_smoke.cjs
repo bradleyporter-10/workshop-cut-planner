@@ -221,7 +221,10 @@ function command(method, params={}, sessionId) {
         if($('layoutgoal').value!=='balanced')throw Error('Goal was not restored');
         const legacy=JSON.parse(savedJSON);delete legacy.layoutGoal;
         await $('projectfile').onchange({target:{files:[{text:async()=>JSON.stringify(legacy)}]}});
-        if($('layoutgoal').value!=='material')throw Error('Legacy project did not use the default');
+        if($('layoutgoal').value!=='balanced')throw Error('Legacy project did not use the default');
+        const minimum=JSON.parse(savedJSON);minimum.layoutGoal='material';
+        await $('projectfile').onchange({target:{files:[{text:async()=>JSON.stringify(minimum)}]}});
+        if($('layoutgoal').value!=='material')throw Error('Explicit minimum-material selection was not restored');
         return true;
     })()`);
     assert.ok(preference,'planning preference saves/restores with backwards-compatible defaults');

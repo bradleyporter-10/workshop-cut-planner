@@ -24,7 +24,7 @@ function verify(layouts,items,kerf,margin){
 const items=parts([[13,36],[22,60],[7,24],[10,28],[25,16],[10,16],[13,44],[22,20],[13,60],[10,52],[25,40],[19,24],[4,36],[4,36]]);
 const minimum=context.sheetPlan(stock,items,.125,0,'better','material');
 const balanced=context.sheetPlan(stock,items,.125,0,'better','balanced');
-assert.equal(JSON.stringify(context.sheetPlan(stock,items,.125,0,'better')),JSON.stringify(minimum),'default preserves minimum-material mode');
+assert.equal(JSON.stringify(context.sheetPlan(stock,items,.125,0,'better')),JSON.stringify(balanced),'default uses balanced mode');
 assert.deepEqual(JSON.parse(JSON.stringify(context.sheetPlanEffort(minimum))),{sheets:2,cuts:27,sideways:6});
 assert.deepEqual(JSON.parse(JSON.stringify(context.sheetPlanEffort(balanced))),{sheets:2,cuts:24,sideways:1});
 for(const quality of ['fast','better','best'])for(const margin of [0,.25]){
