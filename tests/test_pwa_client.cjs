@@ -5,6 +5,7 @@ const source = fs.readFileSync(`${__dirname}/../pwa/client.js`,'utf8');
 class Element {
     constructor(){this.hidden=false;this.disabled=false;this.events={};this.children=[];}
     append(...nodes){this.children.push(...nodes);}
+    prepend(...nodes){this.children.unshift(...nodes);}
     setAttribute(name,value){this[name]=value;}
     addEventListener(name,fn){this.events[name]=fn;}
 }
@@ -24,7 +25,7 @@ async function setup({ios=false,standalone=false,waiting=false}={}) {
     };
     vm.runInNewContext(source,context);
     await new Promise(resolve=>setImmediate(resolve));
-    return {root,buttons,events,serviceEvents,media,mediaEvents,messages,context,registration,
+    return {root,body,buttons,events,serviceEvents,media,mediaEvents,messages,context,registration,
         counts:()=>({reloads,updates,confirmations})};
 }
 (async()=>{
@@ -50,6 +51,9 @@ async function setup({ios=false,standalone=false,waiting=false}={}) {
     const update=await setup({waiting:true});
     assert.ok(update.root.children.includes(update.buttons[1]),'refresh control lives in the top banner');
     assert.equal(update.buttons[1]['data-update-ready'],'true');
+    assert.equal(update.body.children[0].id,'pwa-update-banner');
+    assert.equal(update.body.children[0].hidden,false,'update banner appears at top');
+    assert.equal(normal.body.children[0].hidden,true,'banner hidden with no pending update');
     assert.ok(update.buttons[1].title.includes('Update available'));
     assert.ok(update.buttons[1].title.includes('Save your project JSON files'));
     await update.buttons[1].events.click();

@@ -134,6 +134,7 @@ function command(method, params={}, sessionId) {
         assert.ok(metrics.page<=metrics.viewport+1,`Page overflows at ${width}px: ${layout}`);
         if(width<=800){
             const toolbar=JSON.parse(await evaluate("JSON.stringify({header:Array.from(document.querySelectorAll('header .controls>.btn,header .controls>.units-control')).filter(el=>!el.hidden).map(el=>el.getBoundingClientRect().height),parts:Array.from(document.querySelectorAll('.parts-toolbar>.btn')).map(el=>({width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height}))})"));
+            assert.ok(await evaluate("Math.abs(document.getElementById('pwa-refresh').getBoundingClientRect().top-document.getElementById('saveproject').getBoundingClientRect().top)<1"),'refresh stays on the same mobile toolbar line');
             assert.ok(toolbar.header.every(height=>height===36),'header actions have consistent compact height');
             assert.ok(toolbar.parts.every(item=>item.height===36),'parts actions have consistent compact height');
             assert.ok(toolbar.parts.every(item=>Math.abs(item.width-toolbar.parts[0].width)<1),'parts actions use equal widths');
@@ -233,6 +234,7 @@ function command(method, params={}, sessionId) {
     await evaluate('navigator.serviceWorker.getRegistration().then(r=>r.update()).then(()=>true)');
     await waitFor('navigator.serviceWorker.getRegistration().then(r=>!!r.waiting)');
     await waitFor("document.querySelector('header #pwa-refresh')?.dataset.updateReady==='true'");
+    assert.ok(await evaluate("!document.getElementById('pwa-update-banner').hidden && document.body.firstElementChild.id==='pwa-update-banner'"),'update banner is visible across the top');
     assert.ok(await evaluate("document.getElementById('pwa-refresh').title.includes('Save your project')"));
     assert.equal(await evaluate("getComputedStyle(document.getElementById('pwa-refresh'),'::after').backgroundColor"),'rgb(34, 197, 94)','update badge is green');
 

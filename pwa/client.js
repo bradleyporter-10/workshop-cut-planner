@@ -22,12 +22,19 @@
     refresh.type = 'button';
     refresh.id = 'pwa-refresh';
     refresh.className = 'btn no-print';
-    refresh.textContent = 'Refresh app';
+    refresh.innerHTML = '<svg class="pwa-refresh-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14-5L3 9m0-6v6h6M4 13a8 8 0 0 0 14 5l3-3m0 6v-6h-6"/></svg><span class="pwa-refresh-label">Refresh app</span>';
     refresh.title = 'Check for an update and refresh the app. Save your project first.';
     refresh.disabled = true;
     panel.append(status);
     document.querySelector('header .controls')?.append(refresh);
     document.body.append(panel);
+    const banner = document.createElement('div');
+    banner.id = 'pwa-update-banner';
+    banner.className = 'pwa-update-banner no-print';
+    banner.setAttribute('role', 'status');
+    banner.textContent = 'Update available — save project, then refresh.';
+    banner.hidden = true;
+    document.body.prepend(banner);
     let installPrompt, registration, lastCheck = 0, checkInProgress, reloadRequested = false, newerController = false;
     let hadController = !!navigator.serviceWorker?.controller;
     const syncInstall = () => { install.hidden = isInstalled() || (!installPrompt && !isIOS); };
@@ -68,13 +75,14 @@
     const showStatus = () => {
         const updateReady = !!(registration?.waiting || newerController);
         refresh.setAttribute('data-update-ready', String(updateReady));
+        banner.hidden = !updateReady;
         refresh.title = updateReady
             ? 'Update available. Save your project JSON files before refreshing; unsaved changes will be lost.'
             : 'Check for an update and refresh the app. Save your project files first.';
         refresh.setAttribute('aria-label', refresh.title);
         status.className = updateReady ? 'pwa-update-announcement' : '';
         if (updateReady) {
-            status.textContent = 'Update available. Save your project files, then use Refresh app in the top banner.';
+            status.textContent = '';
         } else if (registration?.active) {
             status.textContent = navigator.onLine ? 'Ready for offline use. Save project JSON to keep your work.' : 'Working offline. Save project JSON to keep your work.';
         }
