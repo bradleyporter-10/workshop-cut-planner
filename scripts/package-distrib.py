@@ -19,6 +19,15 @@ output = ROOT / 'docs'
 output.mkdir(exist_ok=True)
 source_path = ROOT / 'cut-planner.html'
 source_html = source_path.read_text()
+# Keep the root planner and single-file distribution in sync with the authored guide.
+start_marker='<!-- USER_GUIDE_START -->'
+end_marker='<!-- USER_GUIDE_END -->'
+if start_marker in source_html:
+    guide_document=(ROOT / 'USER_GUIDE.html').read_text()
+    guide=guide_document.split('<!-- GUIDE_CONTENT_START -->',1)[1].split('<!-- GUIDE_CONTENT_END -->',1)[0].strip()
+    before,rest=source_html.split(start_marker,1)
+    _,after=rest.split(end_marker,1)
+    source_html=before+start_marker+'\n'+guide+'\n'+end_marker+after
 html = source_html
 bundle = (ROOT / 'vendor/openskp/browser-bundle.js').read_text()
 script_tag = '<script src="vendor/openskp/browser-bundle.js"></script>'

@@ -176,8 +176,31 @@ header .controls>#pwa-refresh{position:relative;white-space:nowrap}
     .pwa-update-banner{font-size:11px;padding:5px 8px}
 }
 
+
+.banner-brand{position:relative;padding-right:44px;min-width:0}
+.help-launch{position:absolute;right:0;top:0;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0}
+.user-help-dialog{width:min(880px,calc(100vw - 32px));max-width:none;max-height:90vh;max-height:90dvh;padding:0;border:1px solid #cbd5e1;border-radius:10px;color:#26384a;background:#fff}
+.user-help-dialog::backdrop{background:#11273c99}
+.user-help-dialog[open]{display:flex;flex-direction:column}
+.user-help-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-shrink:0;padding:12px 20px;border-bottom:1px solid #dbe4ed;background:#f0f6fc}
+.user-help-header h2{margin:0;font-size:20px}
+.user-help-body{overflow-y:auto;overscroll-behavior:contain;padding:8px 24px 24px;min-height:0;font-size:14px;line-height:1.65}
+.user-guide-content h2{margin:24px 0 10px;font-size:19px;line-height:1.3;color:#174f7b}
+.user-guide-content h3{margin:18px 0 6px;font-size:15px}
+.user-guide-content p{margin:10px 0}
+.user-guide-content li{margin-bottom:8px;overflow-wrap:anywhere}
+.user-guide-content ul,.user-guide-content ol{padding-left:22px}
+.user-guide-content nav{display:flex;flex-wrap:wrap;gap:6px 14px;padding:12px;background:#e6eff8;border-radius:6px}
+.user-guide-content a{color:#1664a3;text-underline-offset:3px}
+.user-guide-content code{background:#e8edf2;padding:2px 4px;border-radius:3px;overflow-wrap:anywhere}
+.user-guide-content .guide-callout{padding:12px;background:#fff3ce;border-left:4px solid #e3b44b;border-radius:4px}
+.user-guide-content section{scroll-margin-top:12px}
+body.user-help-visible{overflow:hidden}
+@media screen and (max-width:800px){.banner-brand{padding-right:42px}.user-help-dialog{width:calc(100vw - 16px);max-height:94vh;max-height:94dvh}.user-help-header{padding:10px 14px}.user-help-body{padding:6px 16px 20px;font-size:14px}.user-help-header .btn{min-height:36px}.user-guide-content nav a{padding:3px 0}}
+@media print{.user-help-dialog{display:none!important}}
+
 </style></head><body>
-<header><div><h1>Workshop Cut Planner <span id="app-version" style="font-size:13px;font-weight:500;letter-spacing:0;white-space:nowrap;vertical-align:middle;margin-left:8px;padding:3px 7px;border:1px solid #64748b;border-radius:5px">v0.1.39</span></h1><p>Sheet goods + Solid lumber · Printable cut layouts</p></div><div class="controls no-print"><label class="checkline units-control" title="Measurement units"><span class="units-caption">Units</span><select id="unitmode" aria-label="Measurement units"><option value="in" selected>IN</option><option value="mm">MM</option></select></label><button class="btn" id="demo">Load example</button><button class="btn icon-btn" id="saveproject" type="button" title="Save project as JSON" aria-label="Save project as JSON"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2Z"/><path d="M7 3v6h10V3M7 21v-8h10v8"/></svg></button><button class="btn icon-btn" id="openproject" type="button" title="Open a saved project" aria-label="Open a saved project"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 9V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v2M3 9h18a1 1 0 0 1 1 1.3l-3 9a1 1 0 0 1-1 .7H4a1 1 0 0 1-1-1V9Z"/></svg></button><input type="file" accept=".json" id="projectfile" hidden><button class="btn danger icon-btn" id="clearproject" type="button" title="Clear the current project" aria-label="Clear the current project"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></button></div></header>
+<header><div class="banner-brand"><h1>Workshop Cut Planner <span id="app-version" style="font-size:13px;font-weight:500;letter-spacing:0;white-space:nowrap;vertical-align:middle;margin-left:8px;padding:3px 7px;border:1px solid #64748b;border-radius:5px">v0.1.40</span></h1><button class="btn icon-btn help-launch no-print" id="user-help-open" type="button" title="Open user guide" aria-label="Open user guide" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 8.5a2.6 2.6 0 0 1 5 .9c0 1.8-2.5 2-2.5 3.8M12 16.5v.1"/></svg></button><p>Sheet goods + Solid lumber · Printable cut layouts</p></div><div class="controls no-print"><label class="checkline units-control" title="Measurement units"><span class="units-caption">Units</span><select id="unitmode" aria-label="Measurement units"><option value="in" selected>IN</option><option value="mm">MM</option></select></label><button class="btn" id="demo">Load example</button><button class="btn icon-btn" id="saveproject" type="button" title="Save project as JSON" aria-label="Save project as JSON"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2Z"/><path d="M7 3v6h10V3M7 21v-8h10v8"/></svg></button><button class="btn icon-btn" id="openproject" type="button" title="Open a saved project" aria-label="Open a saved project"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 9V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v2M3 9h18a1 1 0 0 1 1 1.3l-3 9a1 1 0 0 1-1 .7H4a1 1 0 0 1-1-1V9Z"/></svg></button><input type="file" accept=".json" id="projectfile" hidden><button class="btn danger icon-btn" id="clearproject" type="button" title="Clear the current project" aria-label="Clear the current project"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></button></div></header>
 <main>
 <div class="panel no-print"><div class="topline"><h2 id="sec1title">1. Stock materials</h2><button class="btn" id="addmaterial">+ Add material</button></div><p class="hint">Define each material and its raw stock size. Lumber parts can fit side by side across each board’s usable width. Different materials and thicknesses never mix.</p><div class="tablewrap"><table><thead><tr><th id="mnamehdr">Material name</th><th id="mtypehdr">Type</th><th id="mwidthhdr">Width (in)</th><th id="mlengthhdr">Length (in)</th><th id="mthkhdr">Thickness (in)</th><th></th></tr></thead><tbody id="materials"></tbody></table></div></div>
 <div class="panel no-print"><div class="topline"><h2 id="sec2title">2. Parts list</h2><div class="controls parts-toolbar"><button class="btn" id="addpart">+ Add part</button><label class="btn sketchup-import" style="display:inline-block;cursor:pointer" title="Import a SketchUp (.skp) file">Import SketchUp (SKP)<input id="skpfile" type="file" accept=".skp,application/octet-stream"></label><label class="btn" style="display:inline-block;cursor:pointer;color:inherit">Import CSV<input id="csvfile" type="file" accept=".csv,text/csv"></label><button class="btn" id="template">CSV template</button><button class="btn" id="exportcsv">Export parts CSV</button><label class="checkline" title="Off by default: hidden instances and hidden layers are excluded during SKP import."><input id="includehidden" type="checkbox">Include hidden parts</label></div></div><p class="hint">Use finished cut dimensions (including hidden tongues/tenons or allowances). Identical component instances can be combined using Quantity. CSV columns: <code>name,width,length,thickness,quantity,material</code>.</p><div class="tablewrap"><table><thead><tr><th id="pnamehdr">Part label</th><th id="pwidthhdr">Width (in)</th><th id="plengthhdr">Length (in)</th><th id="pthkhdr">Thickness (in)</th><th id="pqtyhdr">Quantity</th><th id="pmathdr">Stock material</th><th></th></tr></thead><tbody id="parts"></tbody></table></div></div>
@@ -185,6 +208,69 @@ header .controls>#pwa-refresh{position:relative;white-space:nowrap}
 <div class="panel print-results" id="results"><div class="topline"><h2 id="sec4title">4. Cutting layouts</h2><span class="hint" id="runinfo">Run optimization to see results.</span></div><div id="summary"></div><div id="layoutparts" class="parts-layout-table"></div><div id="layouts" class="layout-grid"><div class="empty">Your sheet and board diagrams will appear here.</div></div><div class="legend"><span><i class="key"></i> Part</span><span><i class="key waste"></i> Unused stock</span><span><i class="key kerf"></i> Kerf / cutting path</span><span>Numbered dots show cut order</span></div></div>
 <div class="footer no-print">Runs locally in your browser. Your project is not uploaded to a server. Save a project JSON to keep a backup.</div>
 </main>
+<dialog id="user-help" class="user-help-dialog no-print" aria-labelledby="user-help-title">
+<div class="user-help-header"><h2 id="user-help-title">User guide</h2><button class="btn" id="user-help-close" type="button" autofocus>Close</button></div>
+<div class="user-help-body" tabindex="0" aria-label="User guide contents">
+<!-- USER_GUIDE_START -->
+<article class="user-guide-content">
+<p>Use this guide to set up stock, bring in parts, compare cutting strategies, and take a verified plan to the workshop. Your models and projects are processed in your browser.</p>
+<nav aria-label="User guide sections">
+<a href="#guide-workflow">Quick start</a><a href="#guide-stock">Stock &amp; parts</a><a href="#guide-import">Importing</a><a href="#guide-strategies">Planning strategies</a><a href="#guide-results">Reading results</a><a href="#guide-save">Save &amp; print</a><a href="#guide-mobile">Mobile</a><a href="#guide-offline">Offline &amp; updates</a><a href="#guide-troubleshooting">Troubleshooting</a>
+</nav>
+<section id="guide-workflow"><h2>1. Workflow overview</h2>
+<ol><li><strong>Choose units.</strong> Use Units in the top banner to switch between inches and millimeters.</li><li><strong>Define stock materials.</strong> Enter each sheet or board size, thickness, and a recognizable material name.</li><li><strong>Add your parts.</strong> Import a SketchUp file or CSV, or enter names, dimensions, quantities, and material assignments manually. Review every imported list.</li><li><strong>Set cutting preferences.</strong> Enter blade kerf and any edge trim. Choose a sheet layout goal and optimization quality.</li><li><strong>Optimize cut plan.</strong> Review totals, diagrams, repeated-layout instructions, and cut positions. Change settings and re-optimize to compare alternatives.</li><li><strong>Save and print.</strong> Download your project JSON, then use Print / Save PDF to take the plan to the workshop.</li></ol>
+<p><strong>Try it first:</strong> Load example supplies sample stock and parts. Use it before entering your own project; loading an example replaces the current working data, so save your project first.</p>
+<div class="guide-callout"><strong>Before cutting:</strong> verify actual stock sizes, part quantities, dimensions, blade kerf, grain needs, and the cut sequence. The optimizer produces a heuristic plan, not a guarantee of the safest or least-waste cutting method.</div>
+</section>
+<section id="guide-stock"><h2>2. Stock materials and parts</h2>
+<h3>Stock materials</h3><p>Create separate materials for different wood types, thicknesses, or stock sizes. A sheet uses width and length; lumber uses board width and board length. The planner may allocate multiple identical stock pieces as needed. Materials are optimized separately.</p>
+<h3>Part dimensions</h3><p>Give each part a useful name, width, length, thickness, quantity, and a stock material. Thickness must match the assigned material (within 0.001 inch). The part must fit within usable stock after edge trim.</p>
+<p>Dimension fields accept decimals or inch fractions such as <code>3/4</code> and <code>14 1/2</code>. Input tables display decimals. In the results, inch measurements that lie exactly on a 1/32-inch increment display as reduced fractions; finer values remain decimals. Millimeter values stay decimal.</p>
+<p>Enter the actual cut size you need. Add allowances for tenons, tongues, fitting, or later trimming yourself; the planner does not add joinery allowances automatically. Rotation by 90° is allowed, and there is no configurable grain-direction constraint.</p>
+<p><strong>Add / remove:</strong> use Add material or Add part to create rows. The red × removes a row. Removing a material can leave parts without a valid assignment; reassign those parts before optimizing.</p>
+</section>
+<section id="guide-import"><h2>3. Importing parts</h2>
+<h3>SketchUp (SKP)</h3><p>Select Import SketchUp (SKP), then choose your model. The importer groups matching physical parts, extracts dimensions and quantities, and can create stock entries based on thickness. Those stock entries are starting points: review their sizes, material names, and whether they should be sheets or lumber.</p>
+<p>Hidden content is excluded by default. Enable Include hidden parts before importing if you deliberately need it. The import report lists skipped or ambiguous items. Expand its review section and use Add as part for a recoverable skipped item only after checking that it is a real part and not an assembly wrapper.</p>
+<p>Direct SKP import is beta. Model structure and geometry can affect extraction; compare representative parts and counts with SketchUp before relying on a plan. Importing an SKP replaces the working parts list. Save your project first.</p>
+<h3>CSV</h3><p>Use CSV template for the expected columns: <code>name,width,length,thickness,quantity,material</code>. A CSV material name must match an existing stock material. Dimensions are interpreted in the currently selected units; choose the correct Units setting before importing. Export parts CSV downloads a parts list, not a complete saved project.</p>
+</section>
+<section id="guide-strategies"><h2>4. Choosing a planning strategy</h2>
+<h3>Balanced — fewer cuts (default)</h3><p>Start here for a practical sheet-cutting plan. Balanced considers waste, numbered cut operations, and parts turned sideways across the long direction of the sheet. It can accept some additional stock when the simpler cutting plan justifies it.</p>
+<p>The extra-sheet allowance is limited per material group: one extra sheet for small projects, or 15% of the minimum-material baseline rounded down when that is larger. It does not automatically spend that allowance. It is a preference for simpler plans, not a grain lock or a guarantee that every part has the same orientation.</p>
+<h3>Minimum material</h3><p>Choose this when sheet cost or limited stock is the priority. It searches for fewer sheets and fuller early sheets, allowing rotations and more involved cutting where that helps packing. Compare it with Balanced using Number of Cuts and Total Waste % in the summary.</p>
+<h3>Lumber packing</h3><p>Lumber parts can share a board's width side by side, with kerf between them. For example, a 6-inch board can hold two 2.5-inch strips if the configured kerf and margins leave enough room. The planner prefers the longer fitting part dimension along the board. Lumber prioritizes board count; the sheet layout goal does not change lumber packing. Its sequence includes both rip cuts and crosscuts.</p>
+<h3>Kerf, trim, and optimization passes</h3><ul><li><strong>Blade kerf:</strong> material removed by the blade. Measure or verify it for your saw; the starting value is 0.125 inch.</li><li><strong>Edge trim / margin:</strong> allowance on every stock edge. A margin reduces usable width and length by twice that value.</li><li><strong>Optimization passes:</strong> Fast, Better, and Thorough try increasing numbers of arrangements. More passes take longer and may improve a plan; they do not guarantee the global optimum. Balanced evaluates additional alternatives.</li><li><strong>Diagram text size:</strong> changes the diagram's display scale; it does not change part dimensions or packing.</li></ul>
+<p><strong>A useful comparison:</strong> save your project, optimize with Balanced, note sheets/boards, cuts, and waste, then switch to Minimum material and optimize again. Choose the plan that best suits your stock and workshop workflow. Always re-optimize after changing parts, stock, or cutting settings.</p>
+</section>
+<section id="guide-results"><h2>5. Reading the output</h2>
+<h3>Summary</h3><p>The summary counts all physical parts, sheets, boards, and cut operations, even when identical layouts share a page. Total Waste % is weighted by stock area across all sheets and boards; it includes kerf, edge trim, and offcuts. The percentage does not distinguish useful reusable offcuts from scrap, and is not a cost- or thickness-weighted calculation.</p>
+<h3>Diagrams and labels</h3><p>Letter bubbles identify part types and link diagrams with the parts tables. Numbered dark bubbles identify cutting steps. Dashed lines indicate planned cut locations. Dimensions follow the edges they measure; text may shrink or move on small parts. Narrow lumber diagrams may modestly exaggerate width for readability, so use the written measurements rather than measuring the drawing.</p>
+<h3>Repeated layouts</h3><p>A heading such as <strong>Sheets 1–3 · Repeat 3 times</strong> means to use that plan on three sheets. Matching layouts share one screen card and printed layout page. A heading such as <strong>Boards 1, 3</strong> names only those boards; board 2 has a different plan. Parts quantities and cut sequences on a shared plan apply to <em>each</em> listed stock piece.</p>
+<h3>Cut span versus position</h3><ul><li><strong>Cut span:</strong> the full distance the cut travels through the current piece. It may include stock removed by later cuts, so it can exceed a finished part dimension.</li><li><strong>POSITION:</strong> the distance from the current piece's reference edge. Sheet cuts reference left/top edges; lumber references the board start for crosscuts or its side edge for rips.</li><li><strong>From cut N edge:</strong> an earlier cut created the reference edge. Distances account for kerf; measure from the remaining piece's actual edge, not the original stock edge.</li><li><strong>Completion checkbox:</strong> tracks progress on the displayed plan. For a repeated plan, repeat the sequence on every stock piece. Checkboxes are working aids and are not saved as project progress.</li></ul>
+</section>
+<section id="guide-save"><h2>6. Save, reopen, and print</h2>
+<ul><li><strong>Save icon:</strong> downloads a complete project JSON with stock, parts, units, kerf, margin, sheet goal, and diagram scale. Save before closing or refreshing the app.</li><li><strong>Open folder icon:</strong> loads a saved project JSON. Review it and optimize again to generate the cutting layouts.</li><li><strong>Trash icon:</strong> clears the current project after confirmation. It does not delete JSON files you have already downloaded.</li><li><strong>Print / Save PDF:</strong> opens your browser's print dialog. Choose a printer or its PDF destination. Output includes a project cover/parts list and a page for each distinct layout.</li></ul>
+<p>There is no automatic project backup, account, or cloud synchronization. A saved JSON is the reusable project; a PDF is a shop reference. Keep both when useful. Hover over the banner icons to see their actions.</p>
+</section>
+<section id="guide-mobile"><h2>7. Using the mobile layout</h2>
+<p>Materials and parts appear as compact rows. Tap a row's Edit control to expand its fields; tap Done to collapse it. Only one row editor stays open at a time. The red × is available without opening the row. Newly added rows open for editing automatically.</p>
+<p>After optimization, the generated Parts List, Parts on this sheet/board, and Cut sequence sections start collapsed. Tap Show or Hide to control them. Printed output still includes their contents. Controls wrap to fit the screen, and sheet diagrams appear above their associated tables.</p>
+<p>The circular-arrow refresh icon sits with the other banner controls in the PWA. The question-mark Help icon opens this guide. Tap Close or press Escape on a keyboard to return to your unchanged plan.</p>
+</section>
+<section id="guide-offline"><h2>8. Offline use, installation, and updates</h2>
+<p><strong>Local files:</strong> open the source cut-planner.html with its vendor folder alongside it, or open the distributed index.html on its own. The distributed file embeds the parser and this guide. No local app server is required.</p>
+<p><strong>Installable app:</strong> visit the published HTTPS site online, wait for Ready for offline use, then use Install app or the browser's install menu. On iPhone/iPad, use Share → Add to Home Screen (Safari if the option is missing). Installation needs an online visit; once cached, the planner and SKP import can work offline. Clearing browser storage can require another online visit.</p>
+<p><strong>Updates:</strong> while online, the PWA checks the published version on launch, focus, reconnection, and each minute while visible. A green top banner and dot on Refresh indicate a newer version. Save your project JSON, then select Refresh and confirm. No update automatically reloads an open plan. Offline or suspended apps check again when they reconnect or return to use.</p>
+<p>Installing the app does not save the current project. Download JSON before closing, installing, or refreshing. The standalone local file has no live update check; replace it with a newer distributed file when needed.</p>
+</section>
+<section id="guide-troubleshooting"><h2>9. Common questions</h2>
+<ul><li><strong>A part cannot fit:</strong> check stock width/length, part dimensions, thickness assignment, and trim. Confirm the material is a sheet or lumber as intended.</li><li><strong>Too many sheets or cuts:</strong> compare Balanced with Minimum material, try more passes, check quantities and margins, and look for accidental duplicate or oversized parts.</li><li><strong>Lumber still will not fit across:</strong> include kerf between strips and trim on both outside edges. Two 2.5-inch strips need more than 5 inches of usable width when kerf is nonzero.</li><li><strong>A number looks too large:</strong> distinguish Cut span from finished size and POSITION. A later cut may remove the extra material.</li><li><strong>SketchUp parser is missing:</strong> restore the vendor folder beside the source HTML, or use a fresh self-contained index.html distribution. No browser security setting needs to be disabled.</li><li><strong>A project disappeared after closing:</strong> use Open project to restore the JSON you downloaded. Unsaved browser state cannot be recovered by reopening the app.</li></ul>
+</section>
+</article>
+<!-- USER_GUIDE_END -->
+</div></dialog>
+
 <script src="vendor/openskp/browser-bundle.js"></script>
 <script>
 'use strict';
@@ -724,6 +810,25 @@ function updateMobileSummary(event){
 }
 document.querySelector('main').addEventListener('input',updateMobileSummary);
 document.querySelector('main').addEventListener('change',updateMobileSummary);
+
+
+const userHelpDialog=document.getElementById('user-help');
+document.getElementById('user-help-open').addEventListener('click',()=>{
+    userHelpDialog.showModal();
+    document.body.classList.add('user-help-visible');
+    userHelpDialog.querySelector('.user-help-body').scrollTop=0;
+});
+document.getElementById('user-help-close').addEventListener('click',()=>userHelpDialog.close());
+userHelpDialog.addEventListener('close',()=>{
+    document.body.classList.remove('user-help-visible');
+    document.getElementById('user-help-open').focus({preventScroll:true});
+});
+userHelpDialog.addEventListener('click',event=>{
+    const link=event.target.closest('a[href^="#guide-"]');
+    if(!link)return;
+    const section=document.getElementById(link.getAttribute('href').slice(1));
+    if(section){event.preventDefault();section.scrollIntoView({block:'start'});}
+});
 
 labelResponsiveTables();
 new MutationObserver(labelResponsiveTables).observe(document.querySelector('main'),{childList:true,subtree:true});

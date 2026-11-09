@@ -110,6 +110,12 @@ python3 tests/browser_skp_smoke.py docs/index.html
 
 The PWA check requires Node 22+ and uses a temporary localhost server/profile. It validates the manifest and subdirectory scope, switches Chrome offline, reloads the app, and imports the sample SKP. The second check verifies direct `file://` operation.
 
+## User guide
+
+Select the **question-mark Help icon in the top banner** for the workflow overview, optimization strategies, feature reference, and troubleshooting. The guide opens over the current plan; Close or Escape returns to the app without resetting the project. It is included in the offline HTML and PWA, with no extra download.
+
+You can also open [USER_GUIDE.html](USER_GUIDE.html) directly as a standalone document. This is the authored guide source: `npm run build:distrib` embeds its guide content into both `cut-planner.html` and `docs/index.html`. Edit the guide source rather than the embedded copies.
+
 ## Sheet layout goals
 
 In **3. Optimize → Sheet layout goal**, choose:

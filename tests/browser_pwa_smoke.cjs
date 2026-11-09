@@ -135,6 +135,21 @@ function command(method, params={}, sessionId) {
             assert.ok(field.gap>=5&&field.gap<=7,`caption stays directly above control at ${width}px`);
             for(const other of optimizeFields)if(Math.abs(field.row-other.row)<1)assert.ok(Math.abs(field.top-other.top)<1,`Optimize controls align at ${width}px`);
         }
+        const helpState=await evaluate(`(()=>{
+            const saved=JSON.stringify({materials,parts,last});
+            document.getElementById('user-help-open').click();
+            const dialog=document.getElementById('user-help'),body=dialog.querySelector('.user-help-body');
+            const result={open:dialog.open,dialogWidth:dialog.getBoundingClientRect().width,
+                viewport:document.documentElement.clientWidth,contentOverflow:body.scrollWidth>body.clientWidth+1,
+                guide:dialog.textContent.includes('Workflow overview')&&dialog.textContent.includes('Balanced')};
+            dialog.querySelector('a[href="#guide-results"]').click();
+            document.getElementById('user-help-close').click();
+            result.closed=!dialog.open;result.unchanged=saved===JSON.stringify({materials,parts,last});
+            return JSON.stringify(result);
+        })()`);
+        const help=JSON.parse(helpState);
+        assert.ok(help.open&&help.closed&&help.guide&&help.unchanged,'guide works without changing project');
+        assert.ok(help.dialogWidth<=help.viewport&& !help.contentOverflow,`guide fits ${width}px viewport`);
         const metrics=JSON.parse(layout);
         assert.ok(metrics.page<=metrics.viewport+1,`Page overflows at ${width}px: ${layout}`);
         if(width<=800){
