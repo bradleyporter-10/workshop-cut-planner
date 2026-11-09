@@ -1,4 +1,4 @@
-WORKSHOP CUT PLANNER v0.1.36 — INSTALLABLE / OFFLINE EDITION
+WORKSHOP CUT PLANNER v0.1.38 — INSTALLABLE / OFFLINE EDITION
 
 INSTALL AS AN APP
 1. Open the published HTTPS site in your browser while online.
@@ -8,7 +8,7 @@ INSTALL AS AN APP
 4. Once cached, the app opens and imports SketchUp files offline.
 
 No backend, account, or runtime third-party services are required.
-For hosting, publish this entire docs folder, including icons and sw.js.
+For hosting, publish this entire docs folder, including icons, sw.js, and version.json.
 Installation requires HTTPS (localhost is supported for development).
 
 DIRECT FILE USE
@@ -23,7 +23,8 @@ Use Open project to restore a saved project; projects are not auto-saved.
 Online launches/reloads fetch the published page; offline launches use cache.
 Use Refresh app in the top banner to check/apply updates after saving your JSON.
 A green dot marks an available update; hover for the save-project reminder.
-Updates are also checked on launch, return to the app, and periodically online.
+Version checks bypass caches on launch, app focus, and each minute online.
+Workers activate after downloading; open plans are never automatically reloaded.
 Reloads require confirmation; alternatively close all app windows and reopen.
 Browser cache clearing or eviction may require an online visit again.
 

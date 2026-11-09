@@ -29,6 +29,7 @@ class DistributionVersionTests(unittest.TestCase):
                 self.assertEqual(lock['packages']['']['version'], expected)
                 self.assertEqual(lock['packages']['dependency']['version'], '3.4.5')
                 self.assertIn('>v'+expected+'</span>', (root / 'docs/index.html').read_text())
+                self.assertEqual(json.loads((root / 'docs/version.json').read_text())['version'], expected)
                 stamped_source = (root / 'cut-planner.html').read_text()
                 self.assertIn('>v'+expected+'</span>', stamped_source)
                 self.assertEqual(stamped_source.count('id="app-version"'), 1)

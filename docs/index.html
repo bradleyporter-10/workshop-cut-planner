@@ -177,7 +177,7 @@ header .controls>#pwa-refresh{position:relative;white-space:nowrap}
 }
 
 </style><link rel="manifest" href="./manifest.webmanifest"><meta name="theme-color" content="#1664a3"><link rel="apple-touch-icon" href="./icons/apple-touch-icon.png"></head><body>
-<header><div><h1>Workshop Cut Planner <span id="app-version" style="font-size:13px;font-weight:500;letter-spacing:0;white-space:nowrap;vertical-align:middle;margin-left:8px;padding:3px 7px;border:1px solid #64748b;border-radius:5px">v0.1.36</span></h1><p>Sheet goods + Solid lumber · Printable cut layouts</p></div><div class="controls no-print"><label class="checkline units-control" title="Measurement units"><span class="units-caption">Units</span><select id="unitmode" aria-label="Measurement units"><option value="in" selected>IN</option><option value="mm">MM</option></select></label><button class="btn" id="demo">Load example</button><button class="btn icon-btn" id="saveproject" type="button" title="Save project as JSON" aria-label="Save project as JSON"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2Z"/><path d="M7 3v6h10V3M7 21v-8h10v8"/></svg></button><button class="btn icon-btn" id="openproject" type="button" title="Open a saved project" aria-label="Open a saved project"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 9V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v2M3 9h18a1 1 0 0 1 1 1.3l-3 9a1 1 0 0 1-1 .7H4a1 1 0 0 1-1-1V9Z"/></svg></button><input type="file" accept=".json" id="projectfile" hidden><button class="btn danger icon-btn" id="clearproject" type="button" title="Clear the current project" aria-label="Clear the current project"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></button></div></header>
+<header><div><h1>Workshop Cut Planner <span id="app-version" style="font-size:13px;font-weight:500;letter-spacing:0;white-space:nowrap;vertical-align:middle;margin-left:8px;padding:3px 7px;border:1px solid #64748b;border-radius:5px">v0.1.38</span></h1><p>Sheet goods + Solid lumber · Printable cut layouts</p></div><div class="controls no-print"><label class="checkline units-control" title="Measurement units"><span class="units-caption">Units</span><select id="unitmode" aria-label="Measurement units"><option value="in" selected>IN</option><option value="mm">MM</option></select></label><button class="btn" id="demo">Load example</button><button class="btn icon-btn" id="saveproject" type="button" title="Save project as JSON" aria-label="Save project as JSON"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2Z"/><path d="M7 3v6h10V3M7 21v-8h10v8"/></svg></button><button class="btn icon-btn" id="openproject" type="button" title="Open a saved project" aria-label="Open a saved project"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 9V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v2M3 9h18a1 1 0 0 1 1 1.3l-3 9a1 1 0 0 1-1 .7H4a1 1 0 0 1-1-1V9Z"/></svg></button><input type="file" accept=".json" id="projectfile" hidden><button class="btn danger icon-btn" id="clearproject" type="button" title="Clear the current project" aria-label="Clear the current project"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></button></div></header>
 <main>
 <div class="panel no-print"><div class="topline"><h2 id="sec1title">1. Stock materials</h2><button class="btn" id="addmaterial">+ Add material</button></div><p class="hint">Define each material and its raw stock size. Lumber parts can fit side by side across each board’s usable width. Different materials and thicknesses never mix.</p><div class="tablewrap"><table><thead><tr><th id="mnamehdr">Material name</th><th id="mtypehdr">Type</th><th id="mwidthhdr">Width (in)</th><th id="mlengthhdr">Length (in)</th><th id="mthkhdr">Thickness (in)</th><th></th></tr></thead><tbody id="materials"></tbody></table></div></div>
 <div class="panel no-print"><div class="topline"><h2 id="sec2title">2. Parts list</h2><div class="controls parts-toolbar"><button class="btn" id="addpart">+ Add part</button><label class="btn sketchup-import" style="display:inline-block;cursor:pointer" title="Import a SketchUp (.skp) file">Import SketchUp (SKP)<input id="skpfile" type="file" accept=".skp,application/octet-stream"></label><label class="btn" style="display:inline-block;cursor:pointer;color:inherit">Import CSV<input id="csvfile" type="file" accept=".csv,text/csv"></label><button class="btn" id="template">CSV template</button><button class="btn" id="exportcsv">Export parts CSV</button><label class="checkline" title="Off by default: hidden instances and hidden layers are excluded during SKP import."><input id="includehidden" type="checkbox">Include hidden parts</label></div></div><p class="hint">Use finished cut dimensions (including hidden tongues/tenons or allowances). Identical component instances can be combined using Quantity. CSV columns: <code>name,width,length,thickness,quantity,material</code>.</p><div class="tablewrap"><table><thead><tr><th id="pnamehdr">Part label</th><th id="pwidthhdr">Width (in)</th><th id="plengthhdr">Length (in)</th><th id="pthkhdr">Thickness (in)</th><th id="pqtyhdr">Quantity</th><th id="pmathdr">Stock material</th><th></th></tr></thead><tbody id="parts"></tbody></table></div></div>
@@ -5111,6 +5111,14 @@ new MutationObserver(labelResponsiveTables).observe(document.querySelector('main
 (() => {
     'use strict';
     if (!['http:', 'https:'].includes(location.protocol)) return;
+    const currentVersion = '0.1.38';
+    let publishedVersion = null;
+    const isNewerVersion = version => {
+        if (!/^\d+\.\d+\.\d+$/.test(version)) return false;
+        const a = version.split('.').map(Number), b = currentVersion.split('.').map(Number);
+        for (let i = 0; i < 3; i++) { if (a[i] !== b[i]) return a[i] > b[i]; }
+        return false;
+    };
     const standalone = window.matchMedia('(display-mode: standalone)');
     const minimal = window.matchMedia('(display-mode: minimal-ui)');
     let installedEvent = false;
@@ -5145,7 +5153,7 @@ new MutationObserver(labelResponsiveTables).observe(document.querySelector('main
     banner.textContent = 'Update available — save project, then refresh.';
     banner.hidden = true;
     document.body.prepend(banner);
-    let installPrompt, registration, lastCheck = 0, checkInProgress, reloadRequested = false, newerController = false;
+    let installPrompt, registration, lastCheck = 0, checkInProgress, reloadRequested = false;
     let hadController = !!navigator.serviceWorker?.controller;
     const syncInstall = () => { install.hidden = isInstalled() || (!installPrompt && !isIOS); };
     standalone.addEventListener('change', syncInstall);
@@ -5183,7 +5191,10 @@ new MutationObserver(labelResponsiveTables).observe(document.querySelector('main
     });
     syncInstall();
     const showStatus = () => {
-        const updateReady = !!(registration?.waiting || newerController);
+        const updateReady = !!(publishedVersion || registration?.waiting);
+        banner.textContent = publishedVersion
+            ? `Version ${publishedVersion} available — save project, then refresh.`
+            : 'Update available — save project, then refresh.';
         refresh.setAttribute('data-update-ready', String(updateReady));
         banner.hidden = !updateReady;
         refresh.title = updateReady
@@ -5208,7 +5219,25 @@ new MutationObserver(labelResponsiveTables).observe(document.querySelector('main
         if (checkInProgress) return checkInProgress;
         if (!force && Date.now() - lastCheck < 60000) return;
         lastCheck = Date.now();
-        checkInProgress = registration.update();
+        checkInProgress = (async () => {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 4000);
+            try {
+                const url = new URL('./version.json', location.href);
+                url.searchParams.set('__check', String(Date.now()));
+                const response = await fetch(url.href, {cache: 'no-store', signal: controller.signal});
+                if (response.ok) {
+                    const release = await response.json();
+                    if (typeof release.version === 'string' && isNewerVersion(release.version)) {
+                        publishedVersion = release.version;
+                        showStatus();
+                    }
+                }
+            } catch (error) {
+                // A failed/offline release check must not disrupt the plan.
+            } finally { clearTimeout(timeout); }
+            await registration.update();
+        })();
         try { await checkInProgress; }
         finally { checkInProgress = null; showStatus(); }
     }
@@ -5225,9 +5254,22 @@ new MutationObserver(labelResponsiveTables).observe(document.querySelector('main
             changed();
         });
     }
+    function refreshPage() {
+        if (!navigator.onLine) { location.reload(); return; }
+        const url = new URL(location.href);
+        url.searchParams.set('__app_version', publishedVersion || currentVersion);
+        url.searchParams.set('__refresh', String(Date.now()));
+        location.replace(url.href);
+    }
+    navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data?.type === 'APP_VERSION' && typeof event.data.version === 'string' && isNewerVersion(event.data.version)) {
+            publishedVersion = event.data.version;
+            showStatus();
+        }
+    });
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (reloadRequested) location.reload();
-        else if (hadController) { newerController = true; showStatus(); }
+        if (reloadRequested) refreshPage();
+        else if (hadController) checkForUpdate(true).catch(() => {});
         hadController = true;
     });
     refresh.addEventListener('click', async () => {
@@ -5247,7 +5289,7 @@ new MutationObserver(labelResponsiveTables).observe(document.querySelector('main
                 }, 15000);
                 navigator.serviceWorker.addEventListener('controllerchange', () => clearTimeout(activationTimer), {once: true});
             } else {
-                location.reload();
+                refreshPage();
             }
         } catch (error) {
             reloadRequested = false;
@@ -5268,10 +5310,11 @@ new MutationObserver(labelResponsiveTables).observe(document.querySelector('main
             checkForUpdate().catch(() => {});
             window.addEventListener('online', () => {showStatus();checkForUpdate(true).catch(() => {});});
             window.addEventListener('offline', showStatus);
+            window.addEventListener('focus', () => checkForUpdate(true).catch(() => {}));
             document.addEventListener('visibilitychange', () => {
                 if (!document.hidden) {syncInstall();checkForUpdate().catch(() => {});}
             });
-            setInterval(() => {if (!document.hidden) checkForUpdate().catch(() => {});}, 5 * 60000);
+            setInterval(() => {if (!document.hidden) checkForUpdate().catch(() => {});}, 60000);
         } catch (error) {
             status.textContent = 'Offline caching is unavailable. You can still use the planner and save your project.';
             console.warn('Planner offline setup failed:', error);

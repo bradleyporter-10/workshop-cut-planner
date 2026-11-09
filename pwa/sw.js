@@ -1,22 +1,25 @@
 'use strict';
+const APP_VERSION = '__APP_VERSION__';
 const CACHE_PREFIX = 'workshop-cut-planner:' + self.registration.scope + ':';
 const CACHE_NAME = CACHE_PREFIX + '__BUILD_VERSION__';
 const ASSETS = __PRECACHE_ASSETS__.map(asset => new URL(asset, self.registration.scope).href);
 const INDEX = new URL('index.html', self.registration.scope).href;
 const ROOT = new URL('./', self.registration.scope).href;
 self.addEventListener('install', event => {
-    // Do not skip waiting: an update must not replace an in-progress cutting plan.
+    // Activation switches request handling only. Open plans stay in memory and
+    // are never automatically reloaded; the client asks before refreshing.
     event.waitUntil((async () => {
         try {
             const cache = await caches.open(CACHE_NAME);
             await cache.addAll(ASSETS.map(url => new Request(url, {cache: 'reload'})));
+            await self.skipWaiting();
         } catch (error) {
             await caches.delete(CACHE_NAME);
             throw error;
         }
     })());
 });
-// Only activate immediately after a user's explicit Refresh app confirmation.
+// Retain compatibility with older clients that explicitly activate an update.
 self.addEventListener('message', event => {
     if (event.data?.type === 'SKIP_WAITING') event.waitUntil(self.skipWaiting());
 });
@@ -25,6 +28,10 @@ self.addEventListener('activate', event => {
         const keys = await caches.keys();
         await Promise.all(keys.filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map(key => caches.delete(key)));
         await self.clients.claim();
+        const windows = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
+        windows.forEach(client => {
+            if (client.url.startsWith(self.registration.scope)) client.postMessage({type: 'APP_VERSION', version: APP_VERSION});
+        });
     })());
 });
 self.addEventListener('fetch', event => {
@@ -46,7 +53,10 @@ self.addEventListener('fetch', event => {
             const timeout = setTimeout(() => controller.abort(), 4000);
             let response;
             try {
-                response = await fetch(INDEX, {cache: 'no-store', signal: controller.signal});
+                const freshURL = new URL(INDEX);
+                freshURL.searchParams.set('__app_version', APP_VERSION);
+                freshURL.searchParams.set('__fresh', String(Date.now()));
+                response = await fetch(freshURL.href, {cache: 'no-store', signal: controller.signal});
                 if (response.ok && (response.headers.get('content-type') || '').includes('text/html')) {
                     // Cache writes must not prevent a successful online page load.
                     event.waitUntil(cache.put(INDEX, response.clone()).catch(() => {}));

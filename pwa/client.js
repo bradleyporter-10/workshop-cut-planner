@@ -1,6 +1,14 @@
 (() => {
     'use strict';
     if (!['http:', 'https:'].includes(location.protocol)) return;
+    const currentVersion = '__APP_VERSION__';
+    let publishedVersion = null;
+    const isNewerVersion = version => {
+        if (!/^\d+\.\d+\.\d+$/.test(version)) return false;
+        const a = version.split('.').map(Number), b = currentVersion.split('.').map(Number);
+        for (let i = 0; i < 3; i++) { if (a[i] !== b[i]) return a[i] > b[i]; }
+        return false;
+    };
     const standalone = window.matchMedia('(display-mode: standalone)');
     const minimal = window.matchMedia('(display-mode: minimal-ui)');
     let installedEvent = false;
@@ -35,7 +43,7 @@
     banner.textContent = 'Update available — save project, then refresh.';
     banner.hidden = true;
     document.body.prepend(banner);
-    let installPrompt, registration, lastCheck = 0, checkInProgress, reloadRequested = false, newerController = false;
+    let installPrompt, registration, lastCheck = 0, checkInProgress, reloadRequested = false;
     let hadController = !!navigator.serviceWorker?.controller;
     const syncInstall = () => { install.hidden = isInstalled() || (!installPrompt && !isIOS); };
     standalone.addEventListener('change', syncInstall);
@@ -73,7 +81,10 @@
     });
     syncInstall();
     const showStatus = () => {
-        const updateReady = !!(registration?.waiting || newerController);
+        const updateReady = !!(publishedVersion || registration?.waiting);
+        banner.textContent = publishedVersion
+            ? `Version ${publishedVersion} available — save project, then refresh.`
+            : 'Update available — save project, then refresh.';
         refresh.setAttribute('data-update-ready', String(updateReady));
         banner.hidden = !updateReady;
         refresh.title = updateReady
@@ -98,7 +109,25 @@
         if (checkInProgress) return checkInProgress;
         if (!force && Date.now() - lastCheck < 60000) return;
         lastCheck = Date.now();
-        checkInProgress = registration.update();
+        checkInProgress = (async () => {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 4000);
+            try {
+                const url = new URL('./version.json', location.href);
+                url.searchParams.set('__check', String(Date.now()));
+                const response = await fetch(url.href, {cache: 'no-store', signal: controller.signal});
+                if (response.ok) {
+                    const release = await response.json();
+                    if (typeof release.version === 'string' && isNewerVersion(release.version)) {
+                        publishedVersion = release.version;
+                        showStatus();
+                    }
+                }
+            } catch (error) {
+                // A failed/offline release check must not disrupt the plan.
+            } finally { clearTimeout(timeout); }
+            await registration.update();
+        })();
         try { await checkInProgress; }
         finally { checkInProgress = null; showStatus(); }
     }
@@ -115,9 +144,22 @@
             changed();
         });
     }
+    function refreshPage() {
+        if (!navigator.onLine) { location.reload(); return; }
+        const url = new URL(location.href);
+        url.searchParams.set('__app_version', publishedVersion || currentVersion);
+        url.searchParams.set('__refresh', String(Date.now()));
+        location.replace(url.href);
+    }
+    navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data?.type === 'APP_VERSION' && typeof event.data.version === 'string' && isNewerVersion(event.data.version)) {
+            publishedVersion = event.data.version;
+            showStatus();
+        }
+    });
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (reloadRequested) location.reload();
-        else if (hadController) { newerController = true; showStatus(); }
+        if (reloadRequested) refreshPage();
+        else if (hadController) checkForUpdate(true).catch(() => {});
         hadController = true;
     });
     refresh.addEventListener('click', async () => {
@@ -137,7 +179,7 @@
                 }, 15000);
                 navigator.serviceWorker.addEventListener('controllerchange', () => clearTimeout(activationTimer), {once: true});
             } else {
-                location.reload();
+                refreshPage();
             }
         } catch (error) {
             reloadRequested = false;
@@ -158,10 +200,11 @@
             checkForUpdate().catch(() => {});
             window.addEventListener('online', () => {showStatus();checkForUpdate(true).catch(() => {});});
             window.addEventListener('offline', showStatus);
+            window.addEventListener('focus', () => checkForUpdate(true).catch(() => {}));
             document.addEventListener('visibilitychange', () => {
                 if (!document.hidden) {syncInstall();checkForUpdate().catch(() => {});}
             });
-            setInterval(() => {if (!document.hidden) checkForUpdate().catch(() => {});}, 5 * 60000);
+            setInterval(() => {if (!document.hidden) checkForUpdate().catch(() => {});}, 60000);
         } catch (error) {
             status.textContent = 'Offline caching is unavailable. You can still use the planner and save your project.';
             console.warn('Planner offline setup failed:', error);

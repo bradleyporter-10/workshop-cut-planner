@@ -8,8 +8,11 @@ const {spawn} = require('node:child_process');
 const root = path.resolve(__dirname,'..');
 const chromePath = process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const prefix = '/workshop-cut-planner/';
-const mime = {'.html':'text/html','.js':'text/javascript','.webmanifest':'application/manifest+json','.png':'image/png'};
-let deploymentRevision = 0, htmlRevision = 0;
+const mime = {'.html':'text/html','.js':'text/javascript','.webmanifest':'application/manifest+json','.png':'image/png','.json':'application/json'};
+let deploymentRevision = 0, htmlRevision = 0, releaseRevision = 0;
+const originalVersion=JSON.parse(fs.readFileSync(path.join(root,'package.json'))).version;
+const versionParts=originalVersion.split('.').map(Number);versionParts[2]++;
+const nextVersion=versionParts.join('.');
 const server = http.createServer((req,res)=>{
     const pathname = new URL(req.url,'http://localhost').pathname;
     if (!pathname.startsWith(prefix)) {res.writeHead(404).end();return;}
@@ -21,6 +24,8 @@ const server = http.createServer((req,res)=>{
         data=Buffer.from(data.toString().replace(/const CACHE_NAME = CACHE_PREFIX \+ '[^']+';/, `const CACHE_NAME = CACHE_PREFIX + 'smoke-revision-${deploymentRevision}';`));
     }
     if(path.basename(file)==='index.html'&&htmlRevision)data=Buffer.from(data.toString().replace('<body>','<body data-smoke-release="'+htmlRevision+'">'));
+    if(releaseRevision&&path.basename(file)==='version.json')data=Buffer.from(JSON.stringify({version:nextVersion}));
+    if(deploymentRevision&&['index.html','sw.js'].includes(path.basename(file)))data=Buffer.from(data.toString().replaceAll(originalVersion,nextVersion));
     res.end(data);
 });
 let chrome, socket, profile, deadline;
@@ -229,18 +234,26 @@ function command(method, params={}, sessionId) {
     await command('Page.reload',{},sessionId);
     await waitFor("document.readyState==='complete' && document.body.dataset.smokeRelease==='1' && !navigator.onLine");
     console.log('PASS: Normal online reload fetches changed server HTML; the same latest page then reloads offline.');
-    deploymentRevision=1;
+    releaseRevision=1;
     await command('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1},sessionId);
-    await evaluate('navigator.serviceWorker.getRegistration().then(r=>r.update()).then(()=>true)');
-    await waitFor('navigator.serviceWorker.getRegistration().then(r=>!!r.waiting)');
+    await evaluate("window.__keepPlan='still open';window.dispatchEvent(new Event('focus'));true");
     await waitFor("document.querySelector('header #pwa-refresh')?.dataset.updateReady==='true'");
+    assert.equal(await evaluate('window.__keepPlan'),'still open','release checks never reload the current plan');
+    assert.ok(await evaluate(`document.getElementById('pwa-update-banner').textContent.includes(${JSON.stringify(nextVersion)})`),'independent version endpoint advertises release');
+    // Now publish the worker and HTML: activation must not be held up by this open tab.
+    deploymentRevision=1;
+    await evaluate('navigator.serviceWorker.getRegistration().then(r=>r.update()).then(()=>true)');
+    await waitFor("caches.keys().then(keys=>keys.some(key=>key.endsWith('smoke-revision-1')))");
+    await waitFor("navigator.serviceWorker.getRegistration().then(r=>!r.waiting && !!r.active)");
+    assert.equal(await evaluate('window.__keepPlan'),'still open','automatic worker activation preserves the open plan');
     assert.ok(await evaluate("!document.getElementById('pwa-update-banner').hidden && document.body.firstElementChild.id==='pwa-update-banner'"),'update banner is visible across the top');
     assert.ok(await evaluate("document.getElementById('pwa-refresh').title.includes('Save your project')"));
     assert.equal(await evaluate("getComputedStyle(document.getElementById('pwa-refresh'),'::after').backgroundColor"),'rgb(34, 197, 94)','update badge is green');
-
     await evaluate("window.__beforePwaRefresh=true;window.confirm=()=>true;document.getElementById('pwa-refresh').click();true");
     await waitFor("document.readyState==='complete' && typeof window.__beforePwaRefresh==='undefined' && !!document.getElementById('pwa-refresh') && caches.keys().then(keys=>keys.some(key=>key.endsWith('smoke-revision-1')))");
-    console.log('PASS: Install control hides correctly; a simulated deployment is detected and activated through Refresh app.');
+    await waitFor(`document.getElementById('app-version')?.textContent==='v${nextVersion}' && !document.getElementById('pwa-refresh').disabled`);
+    assert.equal(await evaluate("document.getElementById('pwa-update-banner').hidden"),true,'new page stops advertising the already-applied update');
+    console.log('PASS: Uncached version checks detect a release without a waiting worker; activation preserves the plan; Refresh loads the new version.');
     console.log('PASS: Mobile page widths 320–768px fit the viewport; phone tables use labeled cards; desktop tables remain intact.');
     console.log(`PASS: Chrome validated the manifest, controlled the repository subpath, reloaded offline, and imported ${count} grouped SKP parts.`);
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(async()=>{

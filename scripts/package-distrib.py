@@ -45,7 +45,7 @@ head = ('<link rel="manifest" href="./manifest.webmanifest">'
         '<meta name="theme-color" content="#1664a3">'
         '<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">')
 html = html.replace('</head>', head + '</head>')
-client = (pwa / 'client.js').read_text()
+client = (pwa / 'client.js').read_text().replace('__APP_VERSION__', release_version)
 html = html.replace('</body>', '<script>\n' + client + '\n</script></body>')
 (output / 'manifest.webmanifest').write_bytes((pwa / 'manifest.webmanifest').read_bytes())
 icons = output / 'icons'
@@ -57,8 +57,10 @@ template = (pwa / 'sw.js').read_text()
 # Content hashing invalidates offline files whenever the app or its assets change.
 hash_input = html.encode() + template.encode() + b''.join((output / item).read_bytes() for item in assets if item != 'index.html')
 cache_version = hashlib.sha256(hash_input).hexdigest()[:16]
-worker = template.replace('__BUILD_VERSION__', cache_version).replace('__PRECACHE_ASSETS__', json.dumps(assets))
+worker = template.replace('__BUILD_VERSION__', cache_version).replace('__APP_VERSION__', release_version).replace('__PRECACHE_ASSETS__', json.dumps(assets))
 (output / 'sw.js').write_text(worker, encoding='utf-8')
+# Intentionally excluded from the service-worker cache: checked directly online.
+(output / 'version.json').write_text(json.dumps({'version': release_version}) + '\n', encoding='utf-8')
 name = 'index.html'
 (output / name).write_text(html, encoding='utf-8')
 instructions = f"""WORKSHOP CUT PLANNER v{release_version} — INSTALLABLE / OFFLINE EDITION
@@ -71,7 +73,7 @@ INSTALL AS AN APP
 4. Once cached, the app opens and imports SketchUp files offline.
 
 No backend, account, or runtime third-party services are required.
-For hosting, publish this entire docs folder, including icons and sw.js.
+For hosting, publish this entire docs folder, including icons, sw.js, and version.json.
 Installation requires HTTPS (localhost is supported for development).
 
 DIRECT FILE USE
@@ -86,7 +88,8 @@ Use Open project to restore a saved project; projects are not auto-saved.
 Online launches/reloads fetch the published page; offline launches use cache.
 Use Refresh app in the top banner to check/apply updates after saving your JSON.
 A green dot marks an available update; hover for the save-project reminder.
-Updates are also checked on launch, return to the app, and periodically online.
+Version checks bypass caches on launch, app focus, and each minute online.
+Workers activate after downloading; open plans are never automatically reloaded.
 Reloads require confirmation; alternatively close all app windows and reopen.
 Browser cache clearing or eviction may require an online visit again.
 

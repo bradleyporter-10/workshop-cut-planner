@@ -1,6 +1,6 @@
 {
     "name": "workshop-cut-planner",
-    "version": "0.1.36",
+    "version": "0.1.38",
     "private": true,
     "description": "Offline browser cut planner; npm is only used to rebuild the vendored SketchUp bundle",
     "scripts": {
