@@ -8,6 +8,20 @@ A local-first woodworking cut-list and cut-layout optimizer, intended to turn co
 - The SKP extraction path is still evolving and should be treated as beta until geometry/quantity validation is complete on real project models.
 - Generated plans should still be verified before cutting (fit, kerf, sequence feasibility, and part dimensions).
 
+## Assembly Viewer — Milestone 1
+
+Import an SKP using the existing import button, then expand **Assembly Viewer** below the cutting layouts. Orbit, pan, zoom, fit the model, reset to isometric, or switch between perspective and orthographic cameras. Expand the hierarchy with disclosure arrows. Select a component to highlight it and inspect modeled L × W × T in inches; select an assembly to focus it. Checkboxes hide entire instance subtrees.
+
+The viewer reuses the same OpenSKP parse as the cut optimizer. Its independent model in `assembly/model.mjs` retains instance paths, shared definitions, parent relationships, local/world matrices, and inch units. Matrices retain nested rotation, reflection, scale, and shear; dimensions use the scaled definition axes rather than world-axis bounds. The renderer keeps SketchUp's Z-up coordinate system. IDs are deterministic hierarchy paths for the same imported file, not names.
+
+Parsed planar faces (including holes) render as neutral surfaces. Blue wireframes identify approximate bounding boxes when faces cannot be reconstructed. Review notes report malformed faces, missing references, recursive definitions, bad transforms, and shear. Materials, textures, curved surface smoothing, source annotations, and SketchUp scene styles are not reproduced. Dimensions describe local geometry bounds, not manufacturing allowances or exact stock requirements for irregular parts. Mixed assemblies retain their own geometry as well as their children.
+
+Viewer visibility and selection never edit the imported model or cut list. Hidden imports follow **Include hidden parts** at import time. Example parts and saved project JSON contain only cut-list data; loading either or clearing the project clears the viewer. Reimport the original SKP to restore it. CSV additions and cut-list edits do not update the imported geometry. WebGL is required for 3D; an unavailable renderer leaves the tree and optimizer usable.
+
+Build with `npm run build:assembly` after changing `assembly/`. The pinned MIT-licensed Three.js dependency and OrbitControls are bundled into `vendor/assembly/browser-bundle.js`; the license is retained beside the bundle and in its generated notices. `npm run build:distrib` embeds both bundles into the standalone HTML/PWA, preserving offline and direct-file use without runtime CDN access. Added tests cover nested/repeated instances, rotations and scale, local dimensions, units, immutable input, invalid hierarchy/transforms, polygon holes, and the real cabinet fixture. Chrome smoke tests exercise the offline viewer and mobile layout.
+
+The initial inspection and parser evaluation are recorded in [assembly/ARCHITECTURE.md](assembly/ARCHITECTURE.md). Next is Milestone 2: deterministic separation of immediate children of a selected assembly, an explosion amount slider, and exact assembled positions at 0%. Labels, dimension annotations, manual offsets, PNG/PDF diagrams, and SVG evaluation remain later milestones.
+
 ## Goal
 
 1. Export a `.skp` file from SketchUp Free web edition.
@@ -52,6 +66,7 @@ The generated bundle is included, so ordinary use needs no build. If you update 
 ```sh
 npm ci
 npm run build:skp
+npm run build:assembly
 npm test
 ```
 

@@ -36,6 +36,11 @@ if html.count(script_tag) != 1:
 # Prevent any JS string/comment from accidentally terminating the HTML script element.
 safe_bundle = re.sub(r'</script', lambda match: r'<\/script', bundle, flags=re.IGNORECASE)
 html = html.replace(script_tag, '<script>\n' + safe_bundle + '\n</script>')
+assembly_tag = '<script src="vendor/assembly/browser-bundle.js"></script>'
+if assembly_tag in html:
+    assembly_bundle = (ROOT / 'vendor/assembly/browser-bundle.js').read_text()
+    safe_assembly = re.sub(r'</script', lambda match: r'<\/script', assembly_bundle, flags=re.IGNORECASE)
+    html = html.replace(assembly_tag, '<script>\n' + safe_assembly + '\n</script>')
 html = html.replace('Keep vendor/openskp/browser-bundle.js alongside this planner in its original folder structure.',
                     'This copy may be incomplete. Request a fresh copy of the distributed HTML file.')
 if re.search(r'<script\b[^>]*\bsrc\s*=', html, flags=re.IGNORECASE):

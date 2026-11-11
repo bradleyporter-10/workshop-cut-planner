@@ -42,7 +42,7 @@ function command(method, params={}, sessionId) {
     await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
     const url = `http://127.0.0.1:${server.address().port}${prefix}`;
     profile = fs.mkdtempSync(path.join(os.tmpdir(),'cut-planner-pwa-'));
-    chrome = spawn(chromePath,['--headless','--disable-gpu','--no-first-run','--no-default-browser-check',
+    chrome = spawn(chromePath,['--headless','--disable-gpu','--enable-unsafe-swiftshader','--no-first-run','--no-default-browser-check',
         '--disable-background-networking','--disable-sync','--disable-extensions',
         '--remote-debugging-port=0','--user-data-dir='+profile,'about:blank'],{stdio:['ignore','ignore','pipe']});
     const endpoint = await new Promise((resolve,reject)=>{
@@ -94,6 +94,42 @@ function command(method, params={}, sessionId) {
     const fixture=fs.readFileSync(path.join(root,'sketchup-examples/playroom cabinets.skp')).toString('base64');
     const count=await evaluate(`(async()=>{const bytes=Uint8Array.from(atob(${JSON.stringify(fixture)}),c=>c.charCodeAt(0));await loadSkpIntoParts(new File([bytes],'fixture.skp'));return parts.length;})()`);
     assert.ok(count>0);
+    await evaluate("document.getElementById('assembly-viewer').open=true;true");
+    await waitFor("!!document.querySelector('[data-assembly=viewport] canvas')");
+    const assemblyState = JSON.parse(await evaluate(`(()=>{
+        const model=assemblyViewer.getModel();
+        const before=JSON.stringify(parts);
+        const snapshot=JSON.stringify([...model.nodes.values()]);
+        const tree=document.querySelector('[data-assembly=tree]');
+        const buttons=tree.querySelectorAll('button');
+        buttons[1].click();
+        const selected=tree.querySelectorAll('button[aria-pressed=true]').length;
+        const checkbox=tree.querySelector('input');checkbox.click();checkbox.click();
+        const projection=document.querySelector('[data-assembly=projection]');
+        projection.value='orthographic';projection.dispatchEvent(new Event('change'));
+        document.querySelector('[data-assembly=isometric]').click();
+        document.querySelector('[data-assembly=fit]').click();
+        document.querySelector('[data-assembly=reset]').click();
+        const result={nodes:model.nodes.size,buttons:buttons.length,selected,
+            unchanged:before===JSON.stringify(parts)&&snapshot===JSON.stringify([...model.nodes.values()]),
+            canvasWidth:document.querySelector('[data-assembly=viewport] canvas').width,
+            status:document.querySelector('[data-assembly=status]').textContent};
+        document.getElementById('assembly-viewer').open=false;
+        return JSON.stringify(result);
+    })()`));
+    assert.equal(assemblyState.buttons,assemblyState.nodes,'all instance IDs have tree entries');
+    assert.equal(assemblyState.selected,1);
+    assert.ok(assemblyState.canvasWidth>100&&assemblyState.unchanged);
+    assert.ok(assemblyState.status.includes('instances'));
+    await command('Emulation.setDeviceMetricsOverride',{width:390,height:900,deviceScaleFactor:1,mobile:true},sessionId);
+    await evaluate("document.getElementById('assembly-viewer').open=true;document.getElementById('assembly-viewer').scrollIntoView();true");
+    await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve(true))))');
+    assert.ok(await evaluate("document.documentElement.scrollWidth<=document.documentElement.clientWidth+1"),'open viewer fits a phone');
+    const screenshot=await command('Page.captureScreenshot',{format:'png'},sessionId);
+    fs.writeFileSync(path.join(os.tmpdir(),'cut-planner-assembly-smoke.png'),Buffer.from(screenshot.data,'base64'));
+    await evaluate("document.getElementById('assembly-viewer').open=false;true");
+    await command('Emulation.clearDeviceMetricsOverride',{},sessionId);
+    console.log('PASS: Offline assembly viewer renders the real model, selects, changes projection, fits, resets, and preserves cut-list/model data.');
     await evaluate(`demo(); $('optimize').click(); parts[0].name='A long descriptive cabinet component name that should fit on a small phone'; materials[0].name='A long descriptive plywood material name for testing'; renderAll(); renderResults(); true`);
     const consolidation=await evaluate(`(()=>{
         const original=last,checks=[];
@@ -273,6 +309,12 @@ function command(method, params={}, sessionId) {
     assert.equal(await evaluate("document.getElementById('pwa-update-banner').hidden"),true,'new page stops advertising the already-applied update');
     console.log('PASS: Uncached version checks detect a release without a waiting worker; activation preserves the plan; Refresh loads the new version.');
     console.log('PASS: Mobile page widths 320–768px fit the viewport; phone tables use labeled cards; desktop tables remain intact.');
+    await command('Page.navigate',{url:require('node:url').pathToFileURL(path.join(root,'docs/index.html')).href},sessionId);
+    await waitFor('document.readyState === "complete" && typeof loadSkpIntoParts === "function"');
+    await evaluate(`(async()=>{const bytes=Uint8Array.from(atob(${JSON.stringify(fixture)}),c=>c.charCodeAt(0));await loadSkpIntoParts(new File([bytes],'direct-file.skp'));document.getElementById('assembly-viewer').open=true;return true;})()`);
+    await waitFor("!!document.querySelector('[data-assembly=viewport] canvas')");
+    assert.equal(await evaluate('assemblyViewer.getModel().nodes.size'),assemblyState.nodes,'single HTML opens/imports/renders directly from disk');
+    console.log('PASS: Standalone file:// HTML imports and renders without a server.');
     console.log(`PASS: Chrome validated the manifest, controlled the repository subpath, reloaded offline, and imported ${count} grouped SKP parts.`);
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(async()=>{
     clearTimeout(deadline);
