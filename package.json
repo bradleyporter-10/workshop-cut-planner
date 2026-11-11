@@ -1,6 +1,6 @@
 {
     "name": "workshop-cut-planner",
-    "version": "0.2.12",
+    "version": "0.2.58",
     "private": true,
     "description": "Offline browser cut planner; npm rebuilds the local SketchUp and assembly viewer bundles",
     "scripts": {

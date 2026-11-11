@@ -58,9 +58,10 @@ pwa = ROOT / 'pwa'
 head = ('<link rel="manifest" href="./manifest.webmanifest">'
         '<meta name="theme-color" content="#1664a3">'
         '<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">')
-html = html.replace('</head>', head + '</head>')
+html = html.replace('</head>', head + '</head>', 1)
 client = (pwa / 'client.js').read_text().replace('__APP_VERSION__', release_version)
-html = html.replace('</body>', '<script>\n' + client + '\n</script></body>')
+body_start, body_end = html.rsplit('</body>', 1)
+html = body_start + '<script>\n' + client + '\n</script></body>' + body_end
 (output / 'manifest.webmanifest').write_bytes((pwa / 'manifest.webmanifest').read_bytes())
 icons = output / 'icons'
 icons.mkdir(exist_ok=True)

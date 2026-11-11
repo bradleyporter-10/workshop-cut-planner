@@ -13,6 +13,9 @@ for (const icon of manifest.icons) {
     assert.equal(`${png.readUInt32BE(16)}x${png.readUInt32BE(20)}`, icon.sizes);
 }
 const html = fs.readFileSync(path.join(docs, 'index.html'), 'utf8');
+for (const script of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)) {
+    new vm.Script(script[1]); // Embedded print-document HTML must not corrupt app scripts.
+}
 assert.match(html, /rel="manifest" href="\.\/manifest.webmanifest"/);
 assert.ok(!/<script\b[^>]*\bsrc=/.test(html), 'direct file mode remains self-contained');
 const worker = fs.readFileSync(path.join(docs, 'sw.js'), 'utf8');

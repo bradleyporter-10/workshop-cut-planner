@@ -478,11 +478,12 @@ function command(method, params={}, sessionId) {
             $('print-cutting').checked=false;$('print-assembly').checked=false;updatePrintChoice();
             if(!$('print-confirm').disabled)throw Error('Empty print selection enabled');
             $('print-cancel').click();if(printed||$('print-options').open)throw Error('Cancel printed a document');
-            $('print').click();$('print-assembly').checked=false;
-            await $('print-confirm').onclick();
+            $('print').click();$('print-assembly').checked=false;await updatePrintChoice();
+            const beforeTap=printed;const confirmation=$('print-confirm').onclick();
+            if(confirmation?.then||printed!==beforeTap+1)throw Error('Print call was deferred beyond the final tap');
             if(!printed||!document.querySelector('#print-root .print-cover')||document.querySelector('#print-root .print-assembly'))throw Error('Cutting-only selection incorrect');
             window.dispatchEvent(new Event('afterprint'));
-            $('print').click();await $('print-confirm').onclick();
+            $('print').click();await printPreparation;$('print-confirm').onclick();
             const root=$('print-root'),pages=[...root.querySelectorAll('.print-assembly')];
             if(pages.length!==document.querySelectorAll('[data-assembly=views] [role=tab]').length||!root.querySelector('.print-cover'))throw Error('Combined document lacks assembly pages or cutting plan');
             if(pages.some(page=>!page.querySelector('img')||page.querySelector('img').src.length<1000))throw Error('Assembly drawings are empty');
@@ -520,6 +521,42 @@ function command(method, params={}, sessionId) {
     await evaluate('cleanupPrintRoot();true');
 
     console.log('PASS: Print dialog cancel/empty selection, cutting-only, assembly-only, combined pages, images, tables, references, and restored viewer state.');
+    const installedPrint=await evaluate(`(async()=>{
+        const standalone=Object.getOwnPropertyDescriptor(navigator,'standalone'),agent=Object.getOwnPropertyDescriptor(navigator,'userAgent');
+        const oldOpen=window.open,oldPrint=window.print;let launched=null,insideTap=false,frame;
+        try{
+            Object.defineProperty(navigator,'standalone',{configurable:true,value:true});
+            Object.defineProperty(navigator,'userAgent',{configurable:true,value:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)'});
+            window.print=()=>{throw Error('iPhone installed app attempted unavailable in-app printing')};
+            window.open=(url,target)=>{if(!insideTap)throw Error('Browser handoff lost the final tap');launched={url,target};return {opener:window}};
+            $('print').click();await printPreparation;
+            if($('print-confirm').disabled||!$('print-options-note').textContent.includes('browser'))throw Error('Installed print document was not prepared');
+            insideTap=true;const result=$('print-confirm').onclick();insideTap=false;
+            if(result?.then||!launched||launched.target!=='_blank'||!launched.url.startsWith('blob:'))throw Error('Installed app did not synchronously open its prepared document');
+            if($('print-preview-actions').hidden)throw Error('Installed app left no way back from preview');
+            const html=await (await fetch(launched.url)).text();
+            if(!html.includes('print-assembly')||!html.includes('print-cover')||/<script[^>]+src=/.test(html))throw Error('Browser document lost selected content or offline support');
+            frame=document.createElement('iframe');frame.style.cssText='position:fixed;left:-2000px;width:1100px;height:800px';document.body.append(frame);
+            await new Promise((resolve,reject)=>{frame.onload=resolve;frame.onerror=()=>reject(Error('Browser print document failed to load'));frame.src=launched.url});
+            const doc=frame.contentDocument;
+            await Promise.all([...doc.querySelectorAll('img')].map(img=>img.decode()));
+            if(doc.querySelectorAll('.print-assembly').length!==11||!doc.querySelector('.print-cover'))throw Error('Portable print document lost plans');
+            let nativeCalls=0;frame.contentWindow.print=()=>nativeCalls++;doc.getElementById('document-print').click();
+            if(nativeCalls!==1)throw Error('Browser document print button failed');
+            window.open=()=>null;$('print-preview-browser').click();
+            if($('print-preview-download').hidden||!$('print-preview-status').textContent.includes('blocked'))throw Error('Blocked browser handoff has no recovery');
+            $('print-preview-back').click();
+            return !document.body.classList.contains('print-layouts-only')&&$('print-preview-actions').hidden;
+        }finally{
+            frame?.remove();window.open=oldOpen;window.print=oldPrint;
+            if(standalone)Object.defineProperty(navigator,'standalone',standalone);else delete navigator.standalone;
+            if(agent)Object.defineProperty(navigator,'userAgent',agent);else delete navigator.userAgent;
+            cleanupPrintRoot();$('print-options').close();
+        }
+    })()`);
+    assert.ok(installedPrint,'installed iPhone printing uses a user-initiated portable browser document with popup recovery');
+    console.log('PASS: Installed iPhone print preparation, synchronous browser handoff, offline portable document, direct print button, blocked-popup recovery, and return to plan.');
+
     await evaluate(`demo(); $('optimize').click(); parts[0].name='A long descriptive cabinet component name that should fit on a small phone'; materials[0].name='A long descriptive plywood material name for testing'; renderAll(); renderResults(); true`);
     assert.equal(await evaluate('assemblyViewer.getPresentationState().assemblyId'),null,'example clears explosion state');
     assert.ok(await evaluate("document.getElementById('result-tabs').hidden&&document.getElementById('assembly-viewer').hidden&&!document.getElementById('results').hidden"),'example optimization uses only cutting layouts');
