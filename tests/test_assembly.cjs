@@ -57,6 +57,67 @@ const vm = require('node:vm');
     assert.ok([...real.definitions.values()].some(def => def.geometry.length > 100));
     const refs = new Set([...real.nodes.values()].map(n => n.definitionId));
     assert.ok(refs.size < real.nodes.size, 'real repeated definition instances preserved');
+    const { planExplosion, explosionOffsets } = await import('../assembly/explosion.mjs');
+    const { Box3, Vector3 } = await import('three');
+    const importedSnapshot = JSON.stringify([...real.nodes.values()]);
+    let realAssemblies = 0;
+    for (const node of real.nodes.values()) {
+        if (!node.children.length) continue;
+        const plan = planExplosion(real, node.id);
+        const even = planExplosion(real, node.id, {layout:'even',spread:[1.3,.8,1.7]});
+        if(/Counter Base Support|Cabinet Door|Drawer Front/.test(node.name)){
+            assert.ok(plan.plane,'real door/drawer/support has a planar layout');
+            for(const offset of plan.offsets.values())assert.equal(offset[plan.planeAxis],0,'real parts remain in their assembled plane');
+            if(node.name==='Counter Base Support (side)'){
+                const center=node.children.find(id=>{const b=plan.bounds.get(id);return b&&Math.abs((b.min[0]+b.max[0])/2-40)<.01&&Math.abs((b.min[1]+b.max[1])/2-10.5)<.01;});
+                assert.ok(center);assert.deepEqual(plan.offsets.get(center),[0,0,0],'real center support stays aligned instead of moving past its rail');
+            }
+        }
+
+        assert.deepEqual(plan, planExplosion(real, node.id), 'real model layout deterministic');
+        for (const offset of explosionOffsets(plan, 0).values()) assert.deepEqual(offset, [0,0,0]);
+        const boxes = [...explosionOffsets(plan,100)].map(([id, offset]) => {
+            const bounds = plan.bounds.get(id);
+            return new Box3(new Vector3(...bounds.min), new Vector3(...bounds.max)).translate(new Vector3(...offset));
+        });
+        for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+            assert.equal(boxes[i].intersectsBox(boxes[j]), false, 'real exploded children do not overlap');
+        }
+        const evenBoxes=[...explosionOffsets(even,100)].map(([id,offset])=>{const b=even.bounds.get(id);return new Box3(new Vector3(...b.min),new Vector3(...b.max)).translate(new Vector3(...offset));});
+        for(let i=0;i<evenBoxes.length;i++)for(let j=i+1;j<evenBoxes.length;j++)assert.equal(evenBoxes[i].intersectsBox(evenBoxes[j]),false,'real XYZ layout children do not overlap');
+        realAssemblies++;
+    }
+    assert.ok(realAssemblies > 1);
+    assert.equal(importedSnapshot, JSON.stringify([...real.nodes.values()]));
+    console.log(`Real SKP explosion passed for ${realAssemblies} assemblies: deterministic layouts, separated children, zero offsets at 0%, and preserved input.`);
+    vm.runInContext("const KNOWN_ASSEMBLIES=new Set(['Cabinet Box (large)','Cabinet Box (small)','Cab Base (large)','Cab Base (small)']);",context);
+    vm.runInContext(html.slice(html.indexOf('function extractFromSkpModel('),html.indexOf('function ensureMaterialByThickness(')),context);
+    const extracted = context.extractFromSkpModel(context.real);
+    assert.equal(extracted.instanceKeys.size, [...extracted.counts.values()].reduce((sum, count)=>sum+count,0),'every imported cut piece has a source instance link');
+    for (const [id, key] of extracted.instanceKeys) {
+        const node=real.nodes.get(id);
+        assert.ok(node&&!node.children.length&&extracted.counts.has(key),'source links identify normalized leaves');
+        assert.equal(key.split('|')[0],node.name.trim());
+    }
+    const { assemblyViews } = await import('../assembly/view-presets.mjs');
+    const buildViews=assemblyViews(real),large=buildViews.find(view=>real.nodes.get(view.id).name==='Cabinet Box (large)');
+    const viewOrder=new Map(buildViews.flatMap((view,index)=>view.memberIds.map(id=>[id,index])));
+    for(const node of real.nodes.values())if(node.id!==real.rootId&&node.children.length){
+        for(const child of node.children)if(viewOrder.has(child))assert.ok(viewOrder.get(child)<viewOrder.get(node.id),'real subassembly build precedes its parent, including grouped copies');
+    }
+    assert.equal(large.count,4,'provided SKP contains four equivalent large cabinets');
+    assert.equal(buildViews.filter(view=>real.nodes.get(view.id).name==='Cabinet Box (large)').length,1,'only one large-cabinet build view');
+    assert.equal(buildViews.reduce((sum,view)=>sum+view.count,0),[...real.nodes.values()].filter(node=>node.children.length).length,'group counts cover every assembly instance');
+    console.log(`Repeated assemblies: ${buildViews.length-1} unique build views, large cabinet Build ×${large.count}.`);
+    const { buildPartCatalog } = await import('../assembly/annotations.mjs');
+    const catalog = buildPartCatalog(real);
+    assert.equal(catalog.size, [...real.nodes.values()].filter(node => real.definitions.get(node.definitionId).bounds).length);
+    assert.equal(new Set([...catalog.values()].map(part => part.number)).size, catalog.size);
+    for (const part of catalog.values()) {
+        const expected = real.nodes.get(part.instanceId).dimensions;
+        if (expected) part.dimensions.forEach((value, i) => assert.ok(Math.abs(value - Object.values(expected)[i]) < 1e-8));
+    }
+    assert.deepEqual(catalog, buildPartCatalog(real), 'real part numbers stable across repeated catalog creation');
     let compared = 0;
     for (const node of real.nodes.values()) {
         const source = context.real.definitions.get(Number(node.definitionId));

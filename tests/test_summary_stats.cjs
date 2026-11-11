@@ -10,7 +10,7 @@ const ctx={
     displayCutsForLayout:b=>b.cuts,buildPartLabelMap:()=>new Map(),renderLayoutGroups:()=>'',
     fmt:value=>String(Math.round(value*1000)/1000),fmtLayout:String,unitMark:()=>'"',esc:String,
     partKey:p=>JSON.stringify(p),partLabelForKey:()=> 'A',partColorFor:()=> '#fff',
-    applyContextHelp(){},printMode:false,requestAnimationFrame(){},syncLumberDiagramHeight(){}
+    syncAssemblyPartLabels(){},applyContextHelp(){},printMode:false,requestAnimationFrame(){},syncLumberDiagramHeight(){}
 };
 vm.createContext(ctx);vm.runInContext(source,ctx);
 const sheet={kind:'sheet',m:{id:'sheet',name:'Sheet',width:10,length:10},count:1,used:25,
