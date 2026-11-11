@@ -1,16 +1,18 @@
 {
     "name": "workshop-cut-planner",
-    "version": "0.2.63",
+    "version": "0.2.0",
     "private": true,
     "description": "Offline browser cut planner; npm rebuilds the local SketchUp and assembly viewer bundles",
     "scripts": {
         "build:skp": "node scripts/build-skp.cjs",
-        "test": "node tests/test_skp_bundle.cjs && node tests/test_cut_bubbles.cjs && node tests/test_cut_positions.cjs && node tests/test_layout_fractions.cjs && node tests/test_pwa.cjs && node tests/test_layout_grouping.cjs && node tests/test_pwa_client.cjs && node tests/test_lumber_packing.cjs && node tests/test_balanced_sheets.cjs && node tests/test_summary_stats.cjs && node tests/test_assembly.cjs && node tests/test_explosion.cjs && node tests/test_annotations.cjs && node tests/test_manual_offsets.cjs && node tests/test_view_presets.cjs && node tests/test_callout_layout.cjs && node tests/test_camera_fit.cjs && node tests/test_origin_guides.cjs",
+        "test": "node tests/test_skp_bundle.cjs && node tests/test_cut_bubbles.cjs && node tests/test_cut_positions.cjs && node tests/test_layout_fractions.cjs && node tests/test_pwa.cjs && node tests/test_layout_grouping.cjs && node tests/test_pwa_client.cjs && node tests/test_lumber_packing.cjs && node tests/test_balanced_sheets.cjs && node tests/test_summary_stats.cjs && node tests/test_assembly.cjs && node tests/test_explosion.cjs && node tests/test_annotations.cjs && node tests/test_manual_offsets.cjs && node tests/test_view_presets.cjs && node tests/test_callout_layout.cjs && node tests/test_camera_fit.cjs && node tests/test_origin_guides.cjs && npm run test:versioning",
         "build:distrib": "npm run build:skp && npm run build:assembly && npm run build:print && python3 scripts/package-distrib.py",
         "preview:pwa": "python3 -m http.server 8000 --bind 127.0.0.1 --directory docs",
         "test:pwa:browser": "node tests/browser_pwa_smoke.cjs",
         "build:assembly": "node scripts/build-assembly.cjs",
-        "build:print": "node scripts/build-print.cjs"
+        "build:print": "node scripts/build-print.cjs",
+        "hooks:install": "git config --local core.hooksPath .githooks",
+        "test:versioning": "python3 -m unittest discover -s tests -p 'test_versioning.py'"
     },
     "devDependencies": {
         "esbuild": "0.28.2",

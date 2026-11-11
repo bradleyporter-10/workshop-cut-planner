@@ -8,6 +8,27 @@ A local-first woodworking cut-list and cut-layout optimizer, intended to turn co
 - The SKP extraction path is still evolving and should be treated as beta until geometry/quantity validation is complete on real project models.
 - Generated plans should still be verified before cutting (fit, kerf, sequence feasibility, and part dimensions).
 
+## Developer setup after cloning
+
+Requirements: Git, Node.js 22+ (including npm), and Python 3. From the cloned repository folder, run:
+
+```sh
+npm ci
+npm run hooks:install
+npm run build:distrib
+```
+
+**Every developer must run `npm run hooks:install` once per new clone** to enable automatic versioning. Git downloads the tracked `.githooks/` files, but does not copy or enable another developer's local hook configuration. Without this setup step, commits will not automatically bump the version or rebuild the distribution.
+
+Verify that the hook is enabled:
+
+```sh
+git config --local --get core.hooksPath
+# Expected output: .githooks
+```
+
+After setup, ordinary builds keep the current version. Stage your changes and commit normally; the hook bumps the patch version and rebuilds/stages the matching distribution. See [Publishing a release](#publishing-a-release) for details.
+
 ## Assembly Plan — Milestones 1–4
 
 Import an SKP in **Parts list**, review the parts and stock, then optimize. The results offer two tabs: **Cutting Plan** (selected by default) and **Assembly Plan**, using the same imported file. No separate model import is needed. Without an SKP import, results show only cutting layouts. A replacement SKP requires a new successful optimization before its exploded views become available. Orbit, pan, zoom, fit the model, reset to isometric, or switch between perspective and orthographic cameras. Expand the hierarchy with disclosure arrows. Select a component to highlight it and inspect part identification; select an assembly to focus it. Checkboxes hide entire instance subtrees.
@@ -111,7 +132,7 @@ You can still send **just `docs/index.html`** for direct offline use: recipients
 
 ### Publishing a release
 
-Run `npm run build:distrib`, then commit/push **all generated `docs/` files**, including `version.json`, `index.html`, and `sw.js`, plus the version metadata in `package.json` / `package-lock.json`. Wait for the GitHub Pages deployment to complete. A Git push alone is not an active deployment, and the app cannot detect files that hosting has not published yet.
+Enable the repository hook once per checkout with `npm run hooks:install`. Stage the changes you want to release, then commit normally. The hook increments the patch version and rebuilds/stages the matching distribution automatically; push that commit. For the initial versioning setup, stage the hook, scripts, package metadata, and generated files together. Wait for the GitHub Pages deployment to complete. A Git push alone is not an active deployment, and the app cannot detect files that hosting has not published yet.
 
 Existing installed copies will detect the new worker through their normal registration checks; the new worker automatically activates without clearing caches or closing the current project. Once this release's client is loaded, its independent version-file polling handles future releases. Nothing force-reloads unsaved work. Offline/suspended apps check again on reconnect/focus; there is no live server push connection.
 
@@ -123,7 +144,7 @@ npm test
 npm run preview:pwa
 ```
 
-Open **http://localhost:8000/** for localhost installation/offline testing. Stop the preview with Ctrl+C. Each `npm run build:distrib` increments the patch version in `package.json` (for example, `0.1.0` → `0.1.1`), synchronizes `package-lock.json`, and stamps the new version beside the title in both `cut-planner.html` and `docs/index.html`. Commit the version files along with the generated `docs/` files. Changes belong in `cut-planner.html`, `pwa/`, or the build scripts; regenerate `docs/` before publishing. The builder embeds the parser and PWA client, generates icons, and uses a content-based cache version to invalidate changed app assets. No ZIP, sample models, saved projects, backups, or development tools are included.
+Open **http://localhost:8000/** for localhost installation/offline testing. Stop the preview with Ctrl+C. `npm run build:distrib` keeps the current `package.json` version; repeated builds do not increment it. The tracked `.githooks/pre-commit` hook increments the patch version at commit time (for example, `0.2.0` → `0.2.1`), synchronizes the lock file, and stages a distribution built from the staged source. It preserves unstaged work and respects an explicitly staged version reset or manual version. Use staged-file commits (including VS Code) or `git commit -a`; path-only commands such as `git commit file.html` are refused to prevent mismatched release metadata. Stage those files first, then commit without path arguments. Retrying a prepared/aborted commit keeps the same pending release version. Enable the hook once per checkout using `npm run hooks:install`; Git does not transfer local hook configuration when cloning. The initial reset commit retains `0.2.0`, then subsequent commits increment the patch. Node/npm, Python 3, and installed dependencies are required for the commit build. If a build fails, the commit stops without changing the index or release metadata. `npm run test:versioning` tests this workflow in disposable repositories. Changes belong in `cut-planner.html`, `pwa/`, or the build scripts; regenerate `docs/` before publishing. The builder embeds the parser and PWA client, generates icons, and uses a content-based cache version to invalidate changed app assets. No ZIP, sample models, saved projects, backups, or development tools are included.
 
 Optional browser checks use locally installed Chrome (macOS default; set `CHROME_BIN` for another Chrome/Chromium executable):
 

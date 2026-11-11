@@ -11,10 +11,7 @@ package = json.loads(package_path.read_text())
 match = re.fullmatch(r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)', package['version'])
 if not match:
     raise SystemExit('Distribution version must use major.minor.patch format.')
-major, minor, patch = map(int, match.groups())
-release_version = f'{major}.{minor}.{patch + 1}'
-lock_path = ROOT / 'package-lock.json'
-lock = json.loads(lock_path.read_text()) if lock_path.exists() else None
+release_version = package['version']
 output = ROOT / 'docs'
 output.mkdir(exist_ok=True)
 source_path = ROOT / 'cut-planner.html'
@@ -119,12 +116,4 @@ before cutting. Always verify the plan against your physical stock.
 (output / 'START-HERE.txt').write_text(instructions, encoding='utf-8')
 # Stamp the root planner too, keeping its local parser script intact.
 source_path.write_text(source_html, encoding='utf-8')
-# Advance the release metadata only once all distribution files were written.
-package['version'] = release_version
-package_path.write_text(json.dumps(package, indent=4) + '\n')
-if lock is not None:
-    lock['version'] = release_version
-    if '' in lock.get('packages', {}):
-        lock['packages']['']['version'] = release_version
-    lock_path.write_text(json.dumps(lock, indent=4) + '\n')
 print(f'PWA and standalone HTML v{release_version} built in docs/ (cache {cache_version})')
