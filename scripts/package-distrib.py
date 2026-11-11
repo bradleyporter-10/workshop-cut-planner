@@ -41,6 +41,11 @@ if assembly_tag in html:
     assembly_bundle = (ROOT / 'vendor/assembly/browser-bundle.js').read_text()
     safe_assembly = re.sub(r'</script', lambda match: r'<\/script', assembly_bundle, flags=re.IGNORECASE)
     html = html.replace(assembly_tag, '<script>\n' + safe_assembly + '\n</script>')
+print_tag = '<script src="vendor/printing/browser-bundle.js"></script>'
+if print_tag in html:
+    print_bundle = (ROOT / 'vendor/printing/browser-bundle.js').read_text()
+    safe_print = re.sub(r'</script', lambda match: r'<\/script', print_bundle, flags=re.IGNORECASE)
+    html = html.replace(print_tag, '<script>\n' + safe_print + '\n</script>')
 html = html.replace('Keep vendor/openskp/browser-bundle.js alongside this planner in its original folder structure.',
                     'This copy may be incomplete. Request a fresh copy of the distributed HTML file.')
 if re.search(r'<script\b[^>]*\bsrc\s*=', html, flags=re.IGNORECASE):

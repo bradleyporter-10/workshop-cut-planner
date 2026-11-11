@@ -539,40 +539,53 @@ function command(method, params={}, sessionId) {
 
     console.log('PASS: Print dialog cancel/empty selection, cutting-only, assembly-only, combined pages, images, tables, references, and restored viewer state.');
     const installedPrint=await evaluate(`(async()=>{
-        const standalone=Object.getOwnPropertyDescriptor(navigator,'standalone'),agent=Object.getOwnPropertyDescriptor(navigator,'userAgent');
-        const oldOpen=window.open,oldPrint=window.print;let launched=null,insideTap=false,frame;
+        const descriptors=Object.fromEntries(['standalone','userAgent','share','canShare'].map(key=>[key,Object.getOwnPropertyDescriptor(navigator,key)]));
+        const oldOpen=window.open,oldPrint=window.print;let launched=null,shared=null,insideTap=false;
+        const dataUrl=file=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=reject;reader.readAsDataURL(file)});
         try{
             Object.defineProperty(navigator,'standalone',{configurable:true,value:true});
             Object.defineProperty(navigator,'userAgent',{configurable:true,value:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)'});
-            window.print=()=>{throw Error('iPhone installed app attempted unavailable in-app printing')};
-            window.open=(url,target)=>{if(!insideTap)throw Error('Browser handoff lost the final tap');launched={url,target};return {opener:window}};
+            Object.defineProperty(navigator,'canShare',{configurable:true,value:({files})=>files?.length===1&&files[0].type==='application/pdf'});
+            Object.defineProperty(navigator,'share',{configurable:true,value:options=>{if(!insideTap)throw Error('PDF share lost the final tap');shared=options;return Promise.resolve()}});
+            window.print=()=>{throw Error('iPhone installed app attempted in-app HTML printing')};
+            window.open=(url,target)=>{if(!insideTap)throw Error('PDF open lost the final tap');launched={url,target};return {opener:window}};
             $('print').click();await printPreparation;
-            if($('print-confirm').disabled||!$('print-options-note').textContent.includes('browser'))throw Error('Installed print document was not prepared');
+            if($('print-confirm').disabled||!preparedPrintDocument?.file||preparedPrintDocument.file.type!=='application/pdf')throw Error('Installed PDF was not prepared');
+            if(await preparedPrintDocument.file.slice(0,5).text()!=='%PDF-')throw Error('Prepared file is not a real PDF');
             insideTap=true;const result=$('print-confirm').onclick();insideTap=false;
-            if(result?.then||!launched||launched.target!=='_blank'||!launched.url.startsWith('blob:'))throw Error('Installed app did not synchronously open its prepared document');
-            if($('print-preview-actions').hidden)throw Error('Installed app left no way back from preview');
-            const html=await (await fetch(launched.url)).text();
-            if(!html.includes('print-assembly')||!html.includes('print-cover')||/<script[^>]+src=/.test(html))throw Error('Browser document lost selected content or offline support');
-            frame=document.createElement('iframe');frame.style.cssText='position:fixed;left:-2000px;width:1100px;height:800px';document.body.append(frame);
-            await new Promise((resolve,reject)=>{frame.onload=resolve;frame.onerror=()=>reject(Error('Browser print document failed to load'));frame.src=launched.url});
-            const doc=frame.contentDocument;
-            await Promise.all([...doc.querySelectorAll('img')].map(img=>img.decode()));
-            if(doc.querySelectorAll('.print-assembly').length!==11||!doc.querySelector('.print-cover'))throw Error('Portable print document lost plans');
-            let nativeCalls=0;frame.contentWindow.print=()=>nativeCalls++;doc.getElementById('document-print').click();
-            if(nativeCalls!==1)throw Error('Browser document print button failed');
+            if(result?.then||!shared||shared.files[0]!==preparedPrintDocument.file||launched)throw Error('Installed app did not synchronously share its prepared PDF');
+            if($('print-preview-actions').hidden||$('print-preview-download').download!=='workshop-cut-planner.pdf')throw Error('PDF recovery controls missing');
+            const combined=await dataUrl(preparedPrintDocument.file);
+            const root=$('print-root'),assemblyRoot=root.cloneNode(true),cuttingRoot=root.cloneNode(true);
+            assemblyRoot.querySelectorAll('.sheet-card:not(.print-assembly)').forEach(card=>card.remove());
+            cuttingRoot.querySelectorAll('.print-assembly').forEach(card=>card.remove());
+            const assemblyFile=await WorkshopPrint.createPdf(assemblyRoot),cuttingFile=await WorkshopPrint.createPdf(cuttingRoot);
+            if(await assemblyFile.slice(0,5).text()!=='%PDF-'||await cuttingFile.slice(0,5).text()!=='%PDF-')throw Error('Selected plans did not generate PDF files');
+            Object.defineProperty(navigator,'share',{configurable:true,value:()=>Promise.reject(new DOMException('Canceled','AbortError'))});
+            $('print-preview-retry').click();await Promise.resolve();await Promise.resolve();
+            if(!preparedPrintDocument?.file||!$('print-preview-status').textContent.includes('PDF ready'))throw Error('Canceling the share sheet lost the PDF');
+            insideTap=true;$('print-preview-browser').click();insideTap=false;
+            if(!launched||launched.target!=='_blank'||(await fetch(launched.url)).headers.get('content-type')!=='application/pdf')throw Error('PDF viewer received HTML instead of PDF');
             window.open=()=>null;$('print-preview-browser').click();
-            if($('print-preview-download').hidden||!$('print-preview-status').textContent.includes('blocked'))throw Error('Blocked browser handoff has no recovery');
+            if($('print-preview-download').hidden||!$('print-preview-status').textContent.includes('blocked'))throw Error('Blocked PDF window has no download recovery');
             $('print-preview-back').click();
-            return !document.body.classList.contains('print-layouts-only')&&$('print-preview-actions').hidden;
+            return {restored:!document.body.classList.contains('print-layouts-only')&&$('print-preview-actions').hidden,combined,assembly:await dataUrl(assemblyFile),cutting:await dataUrl(cuttingFile)};
         }finally{
-            frame?.remove();window.open=oldOpen;window.print=oldPrint;
-            if(standalone)Object.defineProperty(navigator,'standalone',standalone);else delete navigator.standalone;
-            if(agent)Object.defineProperty(navigator,'userAgent',agent);else delete navigator.userAgent;
+            window.open=oldOpen;window.print=oldPrint;
+            for(const [key,descriptor] of Object.entries(descriptors)){if(descriptor)Object.defineProperty(navigator,key,descriptor);else delete navigator[key]}
             cleanupPrintRoot();$('print-options').close();
         }
     })()`);
-    assert.ok(installedPrint,'installed iPhone printing uses a user-initiated portable browser document with popup recovery');
-    console.log('PASS: Installed iPhone print preparation, synchronous browser handoff, offline portable document, direct print button, blocked-popup recovery, and return to plan.');
+    assert.ok(installedPrint.restored,'installed iPhone PDF sharing restores the plan');
+    for(const kind of ['combined','assembly','cutting']){
+        const bytes=Buffer.from(installedPrint[kind],'base64');
+        assert.equal(bytes.subarray(0,5).toString(),'%PDF-','PWA export is an actual PDF');
+        fs.writeFileSync(path.join(os.tmpdir(),'cut-planner-pwa-'+kind+'.pdf'),bytes);
+        const pages=(bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;
+        assert.ok(pages>0,'PDF has pages');
+        if(kind==='assembly')assert.equal(pages,6,'PWA PDF preserves two assembly views per page');
+    }
+    console.log('PASS: Offline cutting/assembly/combined PDFs, final-tap file sharing, PDF MIME/signature, share cancellation, PDF viewer fallback, blocked-popup download, and return to plan.');
 
     await evaluate(`demo(); $('optimize').click(); parts[0].name='A long descriptive cabinet component name that should fit on a small phone'; materials[0].name='A long descriptive plywood material name for testing'; renderAll(); renderResults(); true`);
     assert.equal(await evaluate('assemblyViewer.getPresentationState().assemblyId'),null,'example clears explosion state');

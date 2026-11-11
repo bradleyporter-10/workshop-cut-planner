@@ -1,7 +1,7 @@
 'use strict';
-const APP_VERSION = '0.2.59';
+const APP_VERSION = '0.2.61';
 const CACHE_PREFIX = 'workshop-cut-planner:' + self.registration.scope + ':';
-const CACHE_NAME = CACHE_PREFIX + 'b220786ca516e1d4';
+const CACHE_NAME = CACHE_PREFIX + 'fb44a34bf2cfd4c2';
 const ASSETS = ["index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png"].map(asset => new URL(asset, self.registration.scope).href);
 const INDEX = new URL('index.html', self.registration.scope).href;
 const ROOT = new URL('./', self.registration.scope).href;
