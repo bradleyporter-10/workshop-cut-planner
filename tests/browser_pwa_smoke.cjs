@@ -468,11 +468,28 @@ function command(method, params={}, sessionId) {
     })()`);
     assert.ok(relabeled,'row edits and removal refresh letters through source IDs');
     console.log('PASS: Default optimizer-letter labels match actual cut layouts, survive manufacturing row edits, preserve component names, and clear deleted assignments.');
+    const printButtonPosition=await evaluate(`(async()=>{
+        window.__originalNativePrint=window.print;window.__trustedPrintTaps=0;
+        window.print=()=>{if(!navigator.userActivation.isActive)throw Error('Print lost trusted user activation');window.__trustedPrintTaps++};
+        $('print').click();await printPreparation;
+        if(getComputedStyle(document.querySelector('main')).display==='none'||!$('print-confirm').checkVisibility())throw Error('Preparation hides print controls');
+        const button=$('print-confirm'),rect=button.getBoundingClientRect();
+        const hit=document.elementFromPoint(rect.x+rect.width/2,rect.y+rect.height/2);
+        if(hit!==button)throw Error('Print confirmation cannot be reached by a real tap');
+        return {x:rect.x+rect.width/2,y:rect.y+rect.height/2};
+    })()`);
+    await command('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...printButtonPosition},sessionId);
+    await command('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...printButtonPosition},sessionId);
+    assert.equal(await evaluate('window.__trustedPrintTaps'),1,'a real click on the visible confirmation immediately requests native printing');
+    await evaluate('window.print=window.__originalNativePrint;delete window.__originalNativePrint;cleanupPrintRoot();true');
     const printCheck=await evaluate(`(async()=>{
         const before=assemblyViewer.getPresentationState(),source=JSON.stringify([...assemblyViewer.getModel().nodes.values()]),partsBefore=JSON.stringify(parts);
         const originalPrint=window.print;let printed=0;window.print=()=>printed++;
         try{
             $('print').click();if(!$('print-options').open||$('print-assembly').disabled)throw Error('Print choices not available');
+            await printPreparation;
+            if(getComputedStyle(document.querySelector('main')).display==='none')throw Error('Print preparation hid the screen containing its confirmation dialog');
+            if(!document.getElementById('print-confirm').checkVisibility())throw Error('Print confirmation is not visible after preparing');
             if($('print').parentElement!==$('result-tabs').parentElement)throw Error('Print button is not beside plan tabs');
             if(getComputedStyle($('print')).backgroundColor!==getComputedStyle(document.querySelector('.parts-toolbar .sketchup-import')).backgroundColor)throw Error('Print button does not match import color');
             $('print-cutting').checked=false;$('print-assembly').checked=false;updatePrintChoice();
